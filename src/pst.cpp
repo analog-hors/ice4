@@ -13,16 +13,16 @@ void unpack(int phase, int piece, const char *data, double scale, int offset) {
 }
 
 void init_pst() {
-    unpack(0, PAWN, "VVVV!G=++E=A <@Y'FPl.Fz~V`ckVVVV", 1.092, 41);
-    unpack(0, KNIGHT, "?IRQQR[_R`ek\\hnpel{{apx~X`ni QT]", 1.585, 187);
-    unpack(0, BISHOP, "#6$'4>>79=@D1>DM7DLUGFML*<=9 ,+-", 1.0, 290);
-    unpack(0, ROOK, "\".18 +-/'0,1/44:>ACEEMMOKPYXPPVV", 1.0, 459);
-    unpack(0, QUEEN, "( \".+.8529:56@<DDCMLPRXY<6NR,9KQ", 1.0, 898);
-    unpack(0, KING, "~}\\ZmV8 87((?=;9EDDCGIGHGHHIGGGG", 2.16, -85);
-    unpack(1, PAWN, "1111\",'(!* &#*\"#13)$U_KD~~vi1111", 1.346, 77);
-    unpack(1, KNIGHT, "?IRQQR[_R`ek\\hnpel{{apx~X`ni QT]", 1.585, 187);
-    unpack(1, BISHOP, "#6$'4>>79=@D1>DM7DLUGFML*<=9 ,+-", 1.0, 290);
-    unpack(1, ROOK, "\".18 +-/'0,1/44:>ACEEMMOKPYXPPVV", 1.0, 459);
-    unpack(1, QUEEN, "( \".+.8529:56@<DDCMLPRXY<6NR,9KQ", 1.0, 898);
-    unpack(1, KING, " 34(7EKO:IOW:MZcD^hjKgmmC]`]);>A", 1.0, -44);
+    unpack(0, PAWN, "jjjj\"GA0*E@C =CX%EQg%@ys_kr~jjjj", 1.251, 8);
+    unpack(0, KNIGHT, "@KTSST]`Tafl]ioqgm{{cpx~Yaoj OT]", 1.658, 182);
+    unpack(0, BISHOP, "#6%'5??79=AE2?EN8DMUHGNL*<=: ,+-", 1.0, 292);
+    unpack(0, ROOK, "\".18 ,-/'0,1044;>ADEEMMNKOXXOPVV", 1.0, 462);
+    unpack(0, QUEEN, "( \".+.8429956@;DDCLLPRXY<5MQ,8KQ", 1.0, 909);
+    unpack(0, KING, "~}_^oZ=&44! :752BAA@EHEGFGGHEFFF", 2.432, -92);
+    unpack(1, PAWN, "''''$,&(#* &&*!$34)%X`KH~}vi''''", 1.415, 90);
+    unpack(1, KNIGHT, "@KTSST]`Tafl]ioqgm{{cpx~Yaoj OT]", 1.658, 182);
+    unpack(1, BISHOP, "#6%'5??79=AE2?EN8DMUHGNL*<=: ,+-", 1.0, 292);
+    unpack(1, ROOK, "\".18 ,-/'0,1044;>ADEEMMNKOXXOPVV", 1.0, 462);
+    unpack(1, QUEEN, "( \".+.8429956@;DDCLLPRXY<5MQ,8KQ", 1.0, 909);
+    unpack(1, KING, " 44(8FLQ>LT[>Q^gHblnOkpqEad` :>B", 1.0, -46);
 }
