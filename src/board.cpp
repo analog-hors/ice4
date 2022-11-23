@@ -218,6 +218,30 @@ struct Board {
             eg_value += PST[1][board[sq]][sq-A1];
             phase += phase_lut[board[sq] & 7];
         }
+        for (int file = 0; file < 8; file++) {
+            for (int rank = 60; rank >= 10; rank-=10) {
+                int sq = rank+file+A1;
+                if (board[sq - 1] == (PAWN | BLACK) || board[sq] & 7 == PAWN || board[sq + 1] == (PAWN | BLACK)) {
+                    break;
+                }
+                if (board[sq - 10] == (PAWN | WHITE)) {
+                    mg_value += -47;
+                    eg_value += 25;
+                    break;
+                }
+            }
+            for (int rank = 10; rank < 70; rank+=10) {
+                int sq = rank+file+A1;
+                if (board[sq - 1] == (PAWN | WHITE) || board[sq] & 7 == PAWN || board[sq + 1] == (PAWN | WHITE)) {
+                    break;
+                }
+                if (board[sq + 10] == (PAWN | BLACK)) {
+                    mg_value -= -47;
+                    eg_value -= 25;
+                    break;
+                }
+            }
+        }
         int value = (mg_value * phase + eg_value * (24 - phase)) / 24;
         return stm == WHITE ? value : -value;
     }
