@@ -9,7 +9,8 @@ double now() {
 struct Searcher {
     uint64_t nodes;
     double abort_time;
-    int16_t history[2][7][SQUARE_SPAN];
+    // index by is_capture, color, piece, square
+    int16_t history[2][2][7][SQUARE_SPAN];
     uint64_t rep_list[256];
 
     int negamax(Board &board, Move &bestmv, int16_t alpha, int16_t beta, int16_t depth, int ply) {
@@ -66,12 +67,16 @@ struct Searcher {
 
         for (int i = 0; i < mvcount; i++) {
             int piece = board.board[moves[i].from] & 7;
+            int victim = board.board[moves[i].to] & 7;
             if (hashmv == moves[i]) {
-                score[i] = 99999;
-            } else if (board.board[moves[i].to]) {
-                score[i] = (board.board[moves[i].to] & 7) * 8 - piece + 10000;
+                score[i] = 99999999;
             } else {
-                score[i] = history[board.stm == BLACK][piece][moves[i].to-A1];
+                int hist = history[!!victim][board.stm == BLACK][piece][moves[i].to-A1];
+                if (victim) {
+                    score[i] = (victim * 8 + 6 - piece) * 8192 + hist + 10000;
+                } else {
+                    score[i] = hist;
+                }
             }
         }
 
@@ -148,16 +153,16 @@ struct Searcher {
                 raised_alpha = 1;
             }
             if (v >= beta) {
-                if (!board.board[moves[i].to]) {
-                    for (int j = 0; j < i; j++) {
-                        if (board.board[moves[j].to]) continue;
-                        int16_t& hist = history[board.stm == BLACK][board.board[moves[j].from] & 7][moves[j].to-A1];
-                        int change = depth * 16;
-                        hist -= change + change * hist / MAX_HIST;
-                    }
-                    int16_t& hist = history[board.stm == BLACK][board.board[moves[i].from] & 7][moves[i].to-A1];
+                int cutoff_is_capture = !!board.board[moves[i].to];
+                int16_t& hist = history[cutoff_is_capture][board.stm == BLACK][board.board[moves[i].from] & 7][moves[i].to-A1];
+                int change = depth * 16;
+                hist += change - change * hist / MAX_HIST;
+                for (int j = 0; j < i; j++) {
+                    int is_capture = !!board.board[moves[j].to];
+                    if (cutoff_is_capture && !is_capture) continue;
+                    int16_t& hist = history[is_capture][board.stm == BLACK][board.board[moves[j].from] & 7][moves[j].to-A1];
                     int change = depth * 16;
-                    hist += change - change * hist / MAX_HIST;
+                    hist -= change + change * hist / MAX_HIST;
                 }
                 break;
             }
