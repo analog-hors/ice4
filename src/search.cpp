@@ -66,10 +66,12 @@ struct Searcher {
 
         for (int i = 0; i < mvcount; i++) {
             int piece = board.board[moves[i].from] & 7;
+            int victim = board.board[moves[i].to] & 7;
             if (hashmv == moves[i]) {
                 score[i] = 99999;
-            } else if (board.board[moves[i].to]) {
-                score[i] = (board.board[moves[i].to] & 7) * 8 - piece + 10000;
+            } else if (victim) {
+                int base = victim >= piece ? 10000 : -10000;
+                score[i] = victim * 8 - piece + base;
             } else {
                 score[i] = history[board.stm == BLACK][piece][moves[i].to-A1];
             }
