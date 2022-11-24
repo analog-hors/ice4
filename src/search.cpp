@@ -161,8 +161,10 @@ struct Searcher {
                     int16_t& hist = history[board.stm == BLACK][board.board[bestmv.from] & 7][bestmv.to-A1];
                     int change = depth * 16;
                     hist += change - change * hist / MAX_HIST;
-                    killers[ply][1] = killers[ply][0];
-                    killers[ply][0] = bestmv;
+                    if (!(killers[ply][0] == bestmv)) {
+                        killers[ply][1] = killers[ply][0];
+                        killers[ply][0] = bestmv;
+                    }
                 }
                 break;
             }
