@@ -82,9 +82,9 @@ void uci() {
                 FINISHED_DEPTH = 0;
                 std::vector<std::thread> threads;
                 for (int i = 0; i < THREADS; i++) {
-                    threads.emplace_back([time_alotment]() {
+                    threads.emplace_back([time_alotment, i]() {
                         Searcher s;
-                        s.iterative_deepening(time_alotment);
+                        s.iterative_deepening(time_alotment, i);
                         ABORT = 1;
                     });
                 }

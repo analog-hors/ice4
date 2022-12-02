@@ -17,6 +17,7 @@ struct Searcher {
     int16_t history[2][7][SQUARE_SPAN];
     uint64_t rep_list[256];
     Move killers[256][2];
+    bool check_time;
 
     int negamax(Board &board, Move &bestmv, int16_t alpha, int16_t beta, int16_t depth, int ply) {
         Move scratch, hashmv(0);
@@ -113,7 +114,7 @@ struct Searcher {
             mkmove.make_move(moves[i]);
             int piece = board.board[moves[i].from] & 7;
             int victim = board.board[moves[i].to] & 7;
-            if (!(++nodes & 0xFFF) && (ABORT || now() > abort_time)) {
+            if (!(++nodes & 0xFFF) && (ABORT || check_time && now() > abort_time)) {
                 throw 0;
             }
 
@@ -208,7 +209,8 @@ struct Searcher {
         return best;
     }
 
-    void iterative_deepening(double time_alotment, int max_depth=250) {
+    void iterative_deepening(double time_alotment, int thread_id, int max_depth=250) {
+        check_time = thread_id == 0;
         memset(history, 0, sizeof(history));
         memset(killers, 0, sizeof(killers));
         nodes = 0;
