@@ -116,6 +116,7 @@ struct Searcher {
 
                 Board mkmove = board;
                 mkmove.make_move(moves[i]);
+                __builtin_prefetch(&TT[mkmove.zobrist % TT.size()]);
                 int piece = board.board[moves[i].from] & 7;
                 int victim = board.board[moves[i].to] & 7;
                 if (!(++nodes & 0xFFF) && (ABORT || now() > abort_time)) {
