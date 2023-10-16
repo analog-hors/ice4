@@ -330,6 +330,9 @@ struct Searcher {
             for (int depth = 1; depth <= max_depth; depth++) {
                 v = negamax(ROOT, mv, last_score - 25, last_score + 25, depth, 0);
                 if (v <= last_score - 25 || v >= last_score + 25) {
+                    v = negamax(ROOT, mv, last_score - 75, last_score + 75, depth, 0);
+                }
+                if (v <= last_score - 75 || v >= last_score + 75) {
                     v = negamax(ROOT, mv, LOST, WON, depth, 0);
                 }
                 last_score = v;
