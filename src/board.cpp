@@ -374,7 +374,7 @@ struct BbBoard {
     int stm;
 
     BbBoard() {
-        piece_bbs[0] = piece_bbs[1] = 0;
+        piece_bbs[0] = piece_bbs[1] = stm = 0;
         piece_bbs[BB_BLACK_PAWN] =  __builtin_bswap64(piece_bbs[BB_WHITE_PAWN] = 0xFF00);
         piece_bbs[BB_BLACK_KNIGHT] = __builtin_bswap64(piece_bbs[BB_WHITE_KNIGHT] = 0x0042);
         piece_bbs[BB_BLACK_BISHOP] = __builtin_bswap64(piece_bbs[BB_WHITE_BISHOP] = 0x0024);
