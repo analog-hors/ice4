@@ -347,3 +347,348 @@ struct Board {
 
 uint64_t PREHISTORY[256];
 int PREHISTORY_LENGTH = 0;
+
+#define BB_NONE 0
+#define BB_PAWN 2
+#define BB_KNIGHT 4
+#define BB_BISHOP 6
+#define BB_ROOK 8
+#define BB_QUEEN 10
+#define BB_KING 12
+
+#define BB_WHITE_PAWN 2
+#define BB_BLACK_PAWN 3
+#define BB_WHITE_KNIGHT 4
+#define BB_BLACK_KNIGHT 5
+#define BB_WHITE_BISHOP 6
+#define BB_BLACK_BISHOP 7
+#define BB_WHITE_ROOK 8
+#define BB_BLACK_ROOK 9
+#define BB_WHITE_QUEEN 10
+#define BB_BLACK_QUEEN 11
+#define BB_WHITE_KING 12
+#define BB_BLACK_KING 13
+
+struct BbBoard {
+    uint64_t piece_bbs[14];
+    int stm;
+
+    BbBoard() {
+        piece_bbs[0] = piece_bbs[1] = 0;
+        piece_bbs[BB_BLACK_PAWN] =  __builtin_bswap64(piece_bbs[BB_WHITE_PAWN] = 0xFF00);
+        piece_bbs[BB_BLACK_KNIGHT] = __builtin_bswap64(piece_bbs[BB_WHITE_KNIGHT] = 0x0042);
+        piece_bbs[BB_BLACK_BISHOP] = __builtin_bswap64(piece_bbs[BB_WHITE_BISHOP] = 0x0024);
+        piece_bbs[BB_BLACK_ROOK] = __builtin_bswap64(piece_bbs[BB_WHITE_ROOK] = 0x0081);
+        piece_bbs[BB_BLACK_QUEEN] = __builtin_bswap64(piece_bbs[BB_WHITE_QUEEN] = 0x0008);
+        piece_bbs[BB_BLACK_KING] = __builtin_bswap64(piece_bbs[BB_WHITE_KING] = 0x0010);
+    }
+
+    int piece_on(int square) {
+        for (int i = BB_WHITE_PAWN; i <= BB_BLACK_KING; i++) {
+            if (piece_bbs[i] & 1ull << square) {
+                return i;
+            }
+        }
+        return BB_NONE;
+    }
+
+    void toggle(int square, int piece) {
+        piece_bbs[piece] ^= 1ull << square;
+    }
+
+    void make_move(Move mv) {
+        int moved = piece_on(mv.from);
+        int victim = piece_on(mv.to);
+
+        toggle(mv.from, moved);
+        toggle(mv.to, victim);
+        toggle(mv.to, mv.promo ? mv.promo | stm : moved);
+        stm ^= 1;
+    }
+
+    int movegen(Move list[], int& count, int quiets=1) {
+        count = 0;
+        uint64_t our_pieces = piece_bbs[BB_PAWN | stm]
+            | piece_bbs[BB_KNIGHT | stm]
+            | piece_bbs[BB_BISHOP | stm]
+            | piece_bbs[BB_ROOK | stm]
+            | piece_bbs[BB_QUEEN | stm]
+            | piece_bbs[BB_KING | stm];
+        uint64_t enemy_pieces = piece_bbs[BB_PAWN | !stm]
+            | piece_bbs[BB_KNIGHT | !stm]
+            | piece_bbs[BB_BISHOP | !stm]
+            | piece_bbs[BB_ROOK | !stm]
+            | piece_bbs[BB_QUEEN | !stm];
+        uint64_t enemy_king = piece_bbs[BB_KING | !stm];
+
+        uint64_t pieces, bb, moves, ray;
+        
+        if (stm) {
+            pieces = piece_bbs[BB_PAWN | stm];
+            for (; bb = pieces & -pieces; pieces &= pieces - 1) {
+                moves = bb >> 8 & ~our_pieces & ~enemy_pieces;
+                moves |= moves >> 8 & 0x000000FF00000000ull & ~our_pieces & ~enemy_pieces;
+                moves |= bb >> 9 & ~0x8080808080808080ull & enemy_pieces;
+                moves |= bb >> 7 & ~0x0101010101010101ull & enemy_pieces;
+
+                if (moves & enemy_king) {
+                    return 0;
+                }
+                for (; moves; moves &= moves - 1) {
+                    list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+                }
+            }
+        } else {
+            pieces = piece_bbs[BB_PAWN | stm];
+            for (; bb = pieces & -pieces; pieces &= pieces - 1) {
+                moves = bb << 8 & ~our_pieces & ~enemy_pieces;
+                moves |= moves << 8 & 0x00000000FF000000ull & ~our_pieces & ~enemy_pieces;
+                moves |= bb << 9 & ~0x0101010101010101ull & enemy_pieces;
+                moves |= bb << 7 & ~0x8080808080808080ull & enemy_pieces;
+
+                if (moves & enemy_king) {
+                    return 0;
+                }
+                for (; moves; moves &= moves - 1) {
+                    list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+                }
+            }
+        }
+
+        pieces = piece_bbs[BB_KNIGHT | stm];
+        for (; bb = pieces & -pieces; pieces &= pieces - 1) {
+            moves = (
+                (bb << 15 | bb >> 17) & 0x7F7F7F7F7F7F7F7Full
+                    | (bb << 17 | bb >> 15) & 0xFEFEFEFEFEFEFEFEull
+                    | (bb << 10 | bb >> 6) & 0xFCFCFCFCFCFCFCFCull
+                    | (bb << 6 | bb >> 10) & 0x3F3F3F3F3F3F3F3Full
+            ) & ~our_pieces;
+
+            if (moves & enemy_king) {
+                return 0;
+            }
+            for (; moves; moves &= moves - 1) {
+                list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+            }
+        }
+
+        pieces = piece_bbs[BB_KING | stm];
+        for (; pieces; pieces &= pieces - 1) {
+            bb = pieces & -pieces;
+            moves = (
+                bb << 8 | bb >> 8
+                    | (bb >> 1 | bb >> 9 | bb << 7) & 0x7F7F7F7F7F7F7F7Full
+                    | (bb << 1 | bb << 9 | bb >> 7) & 0xFEFEFEFEFEFEFEFEull
+            ) & ~our_pieces;
+
+            if (moves & enemy_king) {
+                return 0;
+            }
+            for (; moves; moves &= moves - 1) {
+                list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+            }
+        }
+
+        pieces = piece_bbs[BB_BISHOP | stm] | piece_bbs[BB_QUEEN | stm];
+        for (; bb = pieces & -pieces; pieces &= pieces - 1) {
+            moves = 0;
+            ray = bb << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces;
+            moves |= ray;
+
+            ray = bb >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces;
+            moves |= ray;
+
+            ray = bb << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces;
+            moves |= ray;
+
+            ray = bb >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces;
+            moves |= ray;
+
+            if (moves & enemy_king) {
+                return 0;
+            }
+            for (; moves; moves &= moves - 1) {
+                list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+            }
+        }
+
+        pieces = piece_bbs[BB_ROOK | stm] | piece_bbs[BB_QUEEN | stm];
+        for (; pieces; pieces &= pieces - 1) {
+            bb = pieces & -pieces;
+            moves = 0;
+            ray = bb << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces;
+            moves |= ray;
+
+            ray = bb >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces;
+            moves |= ray;
+
+            ray = bb << 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray << 8 & ~our_pieces;
+            moves |= ray;
+
+            ray = bb >> 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
+            ray |= ray >> 8 & ~our_pieces;
+            moves |= ray;
+
+            if (moves & enemy_king) {
+                return 0;
+            }
+            for (; moves; moves &= moves - 1) {
+                list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+            }
+        }
+        return 1;
+    }
+};
+
+#ifdef OPENBENCH
+
+void bb_parse_fen(BbBoard& board, const char* fen) {
+    for (int sq = 0; sq < 64; sq++) {
+        board.toggle(sq, board.piece_on(sq));
+    }
+
+    int rank = 7;
+    int file = 0;
+    for (char c = *fen++; c != ' '; c = *fen++) {
+        int sq = rank * 8 + file;
+        file++;
+        switch (c) {
+            case 'P':
+                board.toggle(sq, BB_WHITE_PAWN);
+                break;
+            case 'N':
+                board.toggle(sq, BB_WHITE_KNIGHT);
+                break;
+            case 'B':
+                board.toggle(sq, BB_WHITE_BISHOP);
+                break;
+            case 'R':
+                board.toggle(sq, BB_WHITE_ROOK);
+                break;
+            case 'Q':
+                board.toggle(sq, BB_WHITE_QUEEN);
+                break;
+            case 'K':
+                board.toggle(sq, BB_WHITE_KING);
+                break;
+            case 'p':
+                board.toggle(sq, BB_BLACK_PAWN);
+                break;
+            case 'n':
+                board.toggle(sq, BB_BLACK_KNIGHT);
+                break;
+            case 'b':
+                board.toggle(sq, BB_BLACK_BISHOP);
+                break;
+            case 'r':
+                board.toggle(sq, BB_BLACK_ROOK);
+                break;
+            case 'q':
+                board.toggle(sq, BB_BLACK_QUEEN);
+                break;
+            case 'k':
+                board.toggle(sq, BB_BLACK_KING);
+                break;
+            case '/':
+                file = 0;
+                rank--;
+                break;
+            default:
+                file += c - '1';
+                break;
+        }
+    }
+
+    if (*fen++ == 'b') {
+        board.stm = 1;
+    }
+    fen++;
+}
+
+uint64_t bb_perft(BbBoard& board, int depth, bool print_subtrees=false) {
+    BbBoard mkmove;
+    Move moves[256];
+    int mvcount;
+
+    if (board.movegen(moves, mvcount)) {
+        if (depth == 0) {
+            return 1;
+        }
+        uint64_t count = 0;
+        for (int i = 0; i < mvcount; i++) {
+            mkmove = board;
+            mkmove.make_move(moves[i]);
+            uint64_t subtree = bb_perft(mkmove, depth - 1);;
+            count += subtree;
+            if (print_subtrees) {
+                putchar('a' + moves[i].from % 8);
+                putchar('1' + moves[i].from / 8);
+                putchar('a' + moves[i].to % 8);
+                putchar('1' + moves[i].to / 8);
+                if (moves[i].promo != BB_NONE) {
+                    putchar("  ppnnbbrrqqkk"[moves[i].promo]);
+                }
+                printf(": %zu\n", subtree);
+            }
+        }
+        return count;
+    } else {
+        return 0;
+    }
+}
+
+void bb_run_perft(const char* fen, int depth) {
+    BbBoard board;
+    bb_parse_fen(board, fen);
+    uint64_t total = bb_perft(board, depth, true);
+    printf("total: %zu\n", total);
+}
+
+#endif
