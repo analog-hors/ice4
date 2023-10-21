@@ -123,10 +123,9 @@ int main(int argc, char *argv[]) {
         printf("%ld\n", perft(ROOT, 5));
         return 0;
     }
-    if (argc == 2 && !strcmp(argv[1], "bb_perft")) {
-        char buf[4096];
-        fgets(buf, 4096, stdin);
-        bb_run_perft(buf, 3);
+    if (argc == 4 && !strcmp(argv[1], "bb_perft")) {
+        int depth = atoi(argv[2]);
+        bb_run_perft(argv[3], depth);
         return 0;
     }
     uci();
