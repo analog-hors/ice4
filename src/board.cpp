@@ -371,10 +371,12 @@ int PREHISTORY_LENGTH = 0;
 
 struct BbBoard {
     uint64_t piece_bbs[14];
+    uint64_t invalid;
     int stm;
 
     BbBoard() {
-        piece_bbs[0] = piece_bbs[1] = stm = 0;
+        piece_bbs[0] = invalid = stm = 0;
+        piece_bbs[1] = 0x8100000000000081ull;
         piece_bbs[BB_BLACK_PAWN] =  __builtin_bswap64(piece_bbs[BB_WHITE_PAWN] = 0xFF00);
         piece_bbs[BB_BLACK_KNIGHT] = __builtin_bswap64(piece_bbs[BB_WHITE_KNIGHT] = 0x0042);
         piece_bbs[BB_BLACK_BISHOP] = __builtin_bswap64(piece_bbs[BB_WHITE_BISHOP] = 0x0024);
@@ -400,13 +402,29 @@ struct BbBoard {
         int moved = piece_on(mv.from);
         int victim = piece_on(mv.to);
 
-        toggle(mv.from, moved);
-        toggle(mv.to, victim);
         toggle(mv.to, mv.promo ? mv.promo | stm : moved);
+        toggle(mv.to, victim);
+        toggle(mv.from, moved);
+        toggle(mv.from, piece_bbs[1] >> mv.from & 1);
+        toggle(mv.to, piece_bbs[1] >> mv.to & 1);
+
+        invalid = piece_bbs[BB_KING | stm];
+        if ((moved & 0b1110) == BB_KING) {
+            toggle(stm * 56, piece_bbs[1] >> stm * 56 & 1);
+            toggle(stm * 56 + 7, piece_bbs[1] >> stm * 56 + 7 & 1);
+            if ((mv.from - mv.to & 3) == 2) {
+                toggle((mv.to * 5 ^ 5) / 5, BB_ROOK | stm);
+                toggle((mv.to * 3 ^ 4) / 3, BB_ROOK | stm);
+                invalid |= mv.to < mv.from
+                    ? invalid << 1 | invalid << 2
+                    : invalid >> 1 | invalid >> 2;
+            }
+        }
+
         stm ^= 1;
     }
 
-    int movegen(Move list[], int& count, int quiets=1) {
+    int movegen(Move list[], int& count, int quiets=1) {        
         count = 0;
         uint64_t our_pieces = piece_bbs[BB_PAWN | stm]
             | piece_bbs[BB_KNIGHT | stm]
@@ -418,20 +436,21 @@ struct BbBoard {
             | piece_bbs[BB_KNIGHT | !stm]
             | piece_bbs[BB_BISHOP | !stm]
             | piece_bbs[BB_ROOK | !stm]
-            | piece_bbs[BB_QUEEN | !stm];
-        uint64_t enemy_king = piece_bbs[BB_KING | !stm];
+            | piece_bbs[BB_QUEEN | !stm]
+            | piece_bbs[BB_KING | !stm];
+        uint64_t occupied = our_pieces | enemy_pieces;
 
         uint64_t pieces, bb, moves, ray;
         
         if (stm) {
             pieces = piece_bbs[BB_PAWN | stm];
             for (; bb = pieces & -pieces; pieces &= pieces - 1) {
-                moves = bb >> 8 & ~our_pieces & ~enemy_pieces;
-                moves |= moves >> 8 & 0x000000FF00000000ull & ~our_pieces & ~enemy_pieces;
+                moves = bb >> 8 & ~occupied;
+                moves |= moves >> 8 & 0x000000FF00000000ull & ~occupied;
                 moves |= bb >> 9 & ~0x8080808080808080ull & enemy_pieces;
                 moves |= bb >> 7 & ~0x0101010101010101ull & enemy_pieces;
 
-                if (moves & enemy_king) {
+                if (moves & invalid) {
                     return 0;
                 }
                 for (; moves; moves &= moves - 1) {
@@ -441,12 +460,12 @@ struct BbBoard {
         } else {
             pieces = piece_bbs[BB_PAWN | stm];
             for (; bb = pieces & -pieces; pieces &= pieces - 1) {
-                moves = bb << 8 & ~our_pieces & ~enemy_pieces;
-                moves |= moves << 8 & 0x00000000FF000000ull & ~our_pieces & ~enemy_pieces;
+                moves = bb << 8 & ~occupied;
+                moves |= moves << 8 & 0x00000000FF000000ull & ~occupied;
                 moves |= bb << 9 & ~0x0101010101010101ull & enemy_pieces;
                 moves |= bb << 7 & ~0x8080808080808080ull & enemy_pieces;
 
-                if (moves & enemy_king) {
+                if (moves & invalid) {
                     return 0;
                 }
                 for (; moves; moves &= moves - 1) {
@@ -464,7 +483,7 @@ struct BbBoard {
                     | (bb << 6 | bb >> 10) & 0x3F3F3F3F3F3F3F3Full
             ) & ~our_pieces;
 
-            if (moves & enemy_king) {
+            if (moves & invalid) {
                 return 0;
             }
             for (; moves; moves &= moves - 1) {
@@ -481,7 +500,14 @@ struct BbBoard {
                     | (bb << 1 | bb << 9 | bb >> 7) & 0xFEFEFEFEFEFEFEFEull
             ) & ~our_pieces;
 
-            if (moves & enemy_king) {
+            if (piece_bbs[1] & bb << 3 && (occupied & (bb << 3) - bb) == bb) {
+                moves |= bb << 2;
+            }
+            if (piece_bbs[1] & bb >> 4 && (occupied & bb - (bb >> 3)) == 0) {
+                moves |= bb >> 2;
+            }
+
+            if (moves & invalid) {
                 return 0;
             }
             for (; moves; moves &= moves - 1) {
@@ -492,43 +518,43 @@ struct BbBoard {
         pieces = piece_bbs[BB_BISHOP | stm] | piece_bbs[BB_QUEEN | stm];
         for (; bb = pieces & -pieces; pieces &= pieces - 1) {
             moves = 0;
-            ray = bb << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 9 & ~0x0101010101010101ull & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 9 & ~0x0101010101010101ull & ~occupied;
+            moves |= ray << 9 & ~0x0101010101010101ull & ~our_pieces;
 
-            ray = bb >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray >> 7 & ~0x0101010101010101ull & ~occupied;
+            moves |= ray >> 7 & ~0x0101010101010101ull & ~our_pieces;
 
-            ray = bb << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 7 & ~0x8080808080808080ull & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray << 7 & ~0x8080808080808080ull & ~occupied;
+            moves |= ray << 7 & ~0x8080808080808080ull & ~our_pieces;
 
-            ray = bb >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~occupied;
+            ray |= ray >> 9 & ~0x8080808080808080ull & ~occupied;
+            moves |= ray >> 9 & ~0x8080808080808080ull & ~our_pieces;
 
-            if (moves & enemy_king) {
+            if (moves & invalid) {
                 return 0;
             }
             for (; moves; moves &= moves - 1) {
@@ -540,43 +566,43 @@ struct BbBoard {
         for (; pieces; pieces &= pieces - 1) {
             bb = pieces & -pieces;
             moves = 0;
-            ray = bb << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 1 & ~0x0101010101010101ull & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~occupied;
+            ray |= ray << 1 & ~0x0101010101010101ull & ~occupied;
+            moves |= ray << 1 & ~0x0101010101010101ull & ~our_pieces;
 
-            ray = bb >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 1 & ~0x0101010101010101ull & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray >> 1 & ~0x8080808080808080ULL & ~occupied;
+            ray |= ray >> 1 & ~0x8080808080808080ULL & ~occupied;
+            ray |= ray >> 1 & ~0x8080808080808080ULL & ~occupied;
+            ray |= ray >> 1 & ~0x8080808080808080ULL & ~occupied;
+            ray |= ray >> 1 & ~0x8080808080808080ULL & ~occupied;
+            ray |= ray >> 1 & ~0x8080808080808080ULL & ~occupied;
+            moves |= ray >> 1 & ~0x8080808080808080ULL & ~our_pieces;
 
-            ray = bb << 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray << 8 & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray << 8 & ~occupied;
+            ray |= ray << 8 & ~occupied;
+            ray |= ray << 8 & ~occupied;
+            ray |= ray << 8 & ~occupied;
+            ray |= ray << 8 & ~occupied;
+            ray |= ray << 8 & ~occupied;
+            moves |= ray << 8 & ~our_pieces;
 
-            ray = bb >> 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 8 & ~our_pieces & ~enemy_pieces;
-            ray |= ray >> 8 & ~our_pieces;
-            moves |= ray;
+            ray = bb;
+            ray |= ray >> 8 & ~occupied;
+            ray |= ray >> 8 & ~occupied;
+            ray |= ray >> 8 & ~occupied;
+            ray |= ray >> 8 & ~occupied;
+            ray |= ray >> 8 & ~occupied;
+            ray |= ray >> 8 & ~occupied;
+            moves |= ray >> 8 & ~our_pieces;
 
-            if (moves & enemy_king) {
+            if (moves & invalid) {
                 return 0;
             }
             for (; moves; moves &= moves - 1) {
@@ -592,6 +618,7 @@ struct BbBoard {
 void bb_parse_fen(BbBoard& board, const char* fen) {
     for (int sq = 0; sq < 64; sq++) {
         board.toggle(sq, board.piece_on(sq));
+        board.toggle(sq, board.piece_bbs[1] >> sq & 1);
     }
 
     int rank = 7;
@@ -650,6 +677,23 @@ void bb_parse_fen(BbBoard& board, const char* fen) {
         board.stm = 1;
     }
     fen++;
+
+    for (char c = *fen++; c != ' '; c = *fen++) {
+        switch (c) {
+            case 'K':
+                board.piece_bbs[1] |= 1ull << 7;
+                break;
+            case 'Q':
+                board.piece_bbs[1] |= 1ull << 0;
+                break;
+            case 'k':
+                board.piece_bbs[1] |= 1ull << 63;
+                break;
+            case 'q':
+                board.piece_bbs[1] |= 1ull << 56;
+                break;
+        }
+    }
 }
 
 uint64_t bb_perft(BbBoard& board, int depth, bool print_subtrees=false) {
@@ -667,7 +711,7 @@ uint64_t bb_perft(BbBoard& board, int depth, bool print_subtrees=false) {
             mkmove.make_move(moves[i]);
             uint64_t subtree = bb_perft(mkmove, depth - 1);;
             count += subtree;
-            if (print_subtrees) {
+            if (print_subtrees && subtree != 0) {
                 putchar('a' + moves[i].from % 8);
                 putchar('1' + moves[i].from / 8);
                 putchar('a' + moves[i].to % 8);
