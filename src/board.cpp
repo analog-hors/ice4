@@ -370,12 +370,12 @@ int PREHISTORY_LENGTH = 0;
 #define BB_BLACK_KING 13
 
 struct BbBoard {
-    uint64_t piece_bbs[14];
+    uint64_t piece_bbs[15];
     uint64_t invalid;
     int stm;
 
     BbBoard() {
-        piece_bbs[0] = invalid = stm = 0;
+        piece_bbs[0] = piece_bbs[14] = invalid = stm = 0;
         piece_bbs[1] = 0x8100000000000081ull;
         piece_bbs[BB_BLACK_PAWN] =  __builtin_bswap64(piece_bbs[BB_WHITE_PAWN] = 0xFF00);
         piece_bbs[BB_BLACK_KNIGHT] = __builtin_bswap64(piece_bbs[BB_WHITE_KNIGHT] = 0x0042);
@@ -420,11 +420,17 @@ struct BbBoard {
                     : invalid >> 1 | invalid >> 2;
             }
         }
+        if (piece_bbs[14]) {
+            toggle(__builtin_ctzll(piece_bbs[14]), 14);
+        }
+        if ((moved & 0b1110) == BB_PAWN && abs(mv.from - mv.to) != 8 && !victim) {
+            toggle(mv.to ^ 8, mv.from - mv.to & 1 ? BB_PAWN | !stm : 14);
+        }
 
         stm ^= 1;
     }
 
-    int movegen(Move list[], int& count, int quiets=1) {        
+    int movegen(Move list[], int& count, int quiets=1) {
         count = 0;
         uint64_t our_pieces = piece_bbs[BB_PAWN | stm]
             | piece_bbs[BB_KNIGHT | stm]
@@ -447,14 +453,22 @@ struct BbBoard {
             for (; bb = pieces & -pieces; pieces &= pieces - 1) {
                 moves = bb >> 8 & ~occupied;
                 moves |= moves >> 8 & 0x000000FF00000000ull & ~occupied;
-                moves |= bb >> 9 & ~0x8080808080808080ull & enemy_pieces;
-                moves |= bb >> 7 & ~0x0101010101010101ull & enemy_pieces;
+                moves |= ray = (
+                    bb >> 9 & ~0x8080808080808080ull | bb >> 7 & ~0x0101010101010101ull
+                ) & (enemy_pieces | piece_bbs[14] | invalid);
 
-                if (moves & invalid) {
+                if (ray & invalid) {
                     return 0;
                 }
                 for (; moves; moves &= moves - 1) {
-                    list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+                    if (bb & 0x000000000000FF00ull) {
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_QUEEN);
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_KNIGHT);
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_ROOK);
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_BISHOP);
+                    } else {
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+                    }
                 }
             }
         } else {
@@ -462,14 +476,22 @@ struct BbBoard {
             for (; bb = pieces & -pieces; pieces &= pieces - 1) {
                 moves = bb << 8 & ~occupied;
                 moves |= moves << 8 & 0x00000000FF000000ull & ~occupied;
-                moves |= bb << 9 & ~0x0101010101010101ull & enemy_pieces;
-                moves |= bb << 7 & ~0x8080808080808080ull & enemy_pieces;
+                moves |= ray = (
+                    bb << 9 & ~0x0101010101010101ull | bb << 7 & ~0x8080808080808080ull
+                ) & (enemy_pieces | piece_bbs[14] | invalid);
 
-                if (moves & invalid) {
+                if (ray & invalid) {
                     return 0;
                 }
                 for (; moves; moves &= moves - 1) {
-                    list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+                    if (bb & 0x00FF000000000000ull) {
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_QUEEN);
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_KNIGHT);
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_ROOK);
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves), BB_BISHOP);
+                    } else {
+                        list[count++] = Move(__builtin_ctzll(pieces), __builtin_ctzll(moves));
+                    }
                 }
             }
         }
@@ -681,19 +703,28 @@ void bb_parse_fen(BbBoard& board, const char* fen) {
     for (char c = *fen++; c != ' '; c = *fen++) {
         switch (c) {
             case 'K':
-                board.piece_bbs[1] |= 1ull << 7;
+                board.toggle(7, 1);
                 break;
             case 'Q':
-                board.piece_bbs[1] |= 1ull << 0;
+                board.toggle(0, 1);
                 break;
             case 'k':
-                board.piece_bbs[1] |= 1ull << 63;
+                board.toggle(63, 1);
                 break;
             case 'q':
-                board.piece_bbs[1] |= 1ull << 56;
+                board.toggle(56, 1);
                 break;
         }
     }
+
+    if (*fen != '-') {
+        int file = *fen++ - 'a';
+        int rank = *fen - '1';
+        board.toggle(rank * 8 + file, 14);
+    }
+    fen++;
+    fen++;
+
 }
 
 uint64_t bb_perft(BbBoard& board, int depth, bool print_subtrees=false) {
