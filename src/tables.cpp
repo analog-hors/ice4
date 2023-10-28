@@ -3,26 +3,26 @@ int PST[25][SQUARE_SPAN];
 
 int PHASE[] = {0, 0, 1, 1, 2, 4, 0};
 
-#define PAWN_OFFSET S(25, 76)
-#define PASSED_PAWN_OFFSET S(-17, -9)
+#define PAWN_OFFSET S(15, 61)
+#define PASSED_PAWN_OFFSET S(-12, -7)
 int QUADRANTS[] = {
-    S(204, 188), S(227, 194), S(211, 188), S(234, 192),
-    S(222, 272), S(233, 280), S(224, 275), S(238, 278),
-    S(278, 483), S(302, 506), S(286, 478), S(321, 495),
-    S(511, 932), S(506, 1007), S(510, 954), S(526, 1012),
+    S(152, 115), S(178, 125), S(160, 117), S(183, 122),
+    S(149, 177), S(166, 186), S(151, 184), S(169, 183),
+    S(209, 287), S(227, 325), S(216, 295), S(240, 319),
+    S(342, 379), S(322, 596), S(325, 522), S(342, 592),
 };
-#define BISHOP_PAIR S(28, 40)
-int DOUBLED_PAWN[] = {S(5, 22), S(-10, 20), S(9, 19), S(13, 14), S(13, 11), S(10, 21), S(-8, 20), S(5, 31)};
-#define TEMPO S(10, 10)
-#define ISOLATED_PAWN S(9, 8)
-int PROTECTED_PAWN[] = {0, S(8, 7), S(9, 7)};
-#define ROOK_OPEN S(32, 15)
-#define ROOK_SEMIOPEN S(15, 17)
-int PAWN_SHIELD[] = {S(8, -20), S(16, -34), S(19, -27), S(27, -20)};
-#define KING_OPEN S(-42, -1)
-#define KING_SEMIOPEN S(-10, 19)
-#define DATA_LOW ";OO4-1) >I@:65'$@DPLI>-)JN_\\SH<5\\c&mhgHC7-f ooX^4B76..4960(%%%,:.8) ();C.:88<CMG%\"6>CFVRUXQP`WdSgONnJ \":I4-.HI8\\ &-/*/?9/BBL::NN\"$ \"/88./<99,0;G.059 ,2-*6/.&',, '(-237496523423%*5@8735 !/23+))$*(((,/,01.)-468?O;EHBLC[_eYTad^.,' &)3,0>3/(0;2NPH@78AEggXICCNZ,#wTL^j{FA-mrny*!2/ /LI0DZ[H7EK3 D\\`Vdkr]p|$g|'+ .'+$12737CD.@DG$&($%%%$ !$#$((%'&,2 *5<%CQR1FVb"
-#define DATA_HIGH "                                  !        !                                                                                                                                                                                                                    !!      !!!    !                           !  !!                                                "
+#define BISHOP_PAIR S(60, 10)
+int DOUBLED_PAWN[] = {S(-12, 24), S(-21, 22), S(2, 22), S(-2, 22), S(-3, 22), S(2, 19), S(-18, 21), S(-17, 33)};
+#define TEMPO S(12, 8)
+#define ISOLATED_PAWN S(11, 1)
+int PROTECTED_PAWN[] = {0, S(8, 7), S(10, 7)};
+#define ROOK_OPEN S(25, 27)
+#define ROOK_SEMIOPEN S(11, 27)
+int PAWN_SHIELD[] = {S(5, -16), S(14, -31), S(17, -28), S(29, -28)};
+#define KING_OPEN S(-37, 0)
+#define KING_SEMIOPEN S(-10, 17)
+#define DATA_LOW "4HJ/(/, 3?8402$ 09FFD8-$=DYRMG:3RWxeaiF9/A]m_`aV2B39-0-:82.)#&+<3:% '+5@/4<27:FD'+0446ENG9MKWVAQWDDaM% :vY@KGFS` +--03A=1CHL77LP! \" -<6..788%%7D/.47 -0+(2-*$(&)  \"*'/23+271)027(*.;30+3!\"*-+$$'#'\"! &)(//(%&,229F5:>7A=PSLFBHRK)*% %&8$,7-('-:.FGA;40=@X]MD==DQ|pjRMVdr30\"lpqv! -.!#@B,/EK:09;3 2@F:IOUCQXcL\\fh%)%( +/5,3<=,;>@'&%!$\"\"  !\"!$&'\" %,H#0E;'><J24?B"
+#define DATA_HIGH "                                                                                                                                                                                                                                                                        !!!    !                                                                                "
 
 int get_data(int i) {
     auto data_low = DATA_LOW;
