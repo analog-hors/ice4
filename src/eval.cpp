@@ -1,28 +1,28 @@
-// loss: 0.07905    train id: 2023-12-31-17-43-49-frzn-big3
+// loss: 0.02213    train id: 2024-01-03-19-03-19-frzn-big3-sf1k.mf
 
 #define S(a, b) (a + (b * 0x10000))
 
 int QUADRANTS[] = {
-    S(217, 234), S(229, 239), S(224, 233), S(224, 241),
-    S(236, 301), S(233, 307), S(238, 303), S(234, 306),
-    S(292, 557), S(305, 576), S(299, 550), S(322, 564),
-    S(609, 1095), S(595, 1132), S(612, 1095), S(606, 1144),
+    S(256, 242), S(271, 247), S(265, 241), S(266, 250),
+    S(282, 309), S(279, 313), S(284, 310), S(281, 312),
+    S(349, 583), S(364, 603), S(358, 575), S(385, 590),
+    S(773, 1105), S(755, 1146), S(778, 1104), S(771, 1158),
 };
-int DOUBLED_PAWN[] = {S(4, 16), S(-11, 14), S(8, 14), S(13, 10), S(14, 6), S(8, 16), S(-9, 13), S(2, 26)};
-int PROTECTED_PAWN[] = {0, S(7, 7), S(6, 8)};
-int PAWN_SHIELD[] = {S(-3, -7), S(3, -21), S(5, -16), S(13, -10)};
-int MOBILITY[] = {0, S(5, 8), S(1, 0), S(3, 5), S(2, 3), S(1, 4), S(-3, 5)};
+int DOUBLED_PAWN[] = {S(6, 19), S(-13, 18), S(10, 16), S(16, 11), S(17, 8), S(12, 17), S(-8, 15), S(6, 30)};
+int PROTECTED_PAWN[] = {0, S(8, 7), S(7, 7)};
+int PAWN_SHIELD[] = {S(-2, -11), S(6, -26), S(8, -20), S(17, -16)};
+int MOBILITY[] = {0, S(6, 8), S(1, 0), S(4, 4), S(3, 3), S(2, 4), S(-4, 5)};
 
-#define DATA_LOW "7MO632* ALG?=;+(?ESOMB0*EM\\\\TG;2T\\|eb`E=@#b)$e@l2C95+-2631%'#$*7-5' ((<C,5759BLF\"!7BEIVREWN@G]z@V?>\\D #4H71+_wbj )/2+2@>6FHO=;NM\"$ $'30))75-()*7/28? +32)4/1$%*, (,/-.33121,,*$$ )8A75//#&5980-+(/./0240353039:;AS@NQGNC} :??GLC0-$ %(4,3?4-'.:2RVKA79BGpraNGIVb@6)\\Tl{/@@uAABL^\"2/ 2JG3EWWH5<B/ Lfk\\luye{(.p&28 -*)$)*+1134*353!#' '''%\"#&$'*)'% \",)$(/-<EA6FNT"
-#define DATA_HIGH "                                           !!                                                                                                                                                                            !!!!!!!                                !!!    !!!                                !! !!!                                                "
+#define DATA_LOW "<Y[836, GXPEBB/*GP`\\XL5-P\\pncTE8bm8yuoPCB$qE@pEw:K<=1/5<;4)+$#/=49' **BK.;77?IVP)&8HMR`b[d[DNr0S`FBgF !7G9/$W|g_ +6:09IH=RV_IF]Z$& %*84+,>:0,,,;36=F -76-;45().. */3329978600,'% (6F<7.0\"%599/-*(/,+-040250,178:?T>RUINB/3ILO[TT.,% ((7)3A5/'/;2U[PF9<DIzzjTIK[iTF9bXt)<GK!G>=V_!41 4NL6J_`P?IQA Okpar|!k#/7v/=B /,,'*.046:;,9=;\"$' *)('\"#&%'++)' !-$!&-(=FB6IR["
+#define DATA_HIGH "                                  !        !!                                                 !                                                                                                                         !!!!!!!!                                !!!   !!!!!                            ! !!! !!!                                                "
 
-#define PAWN_OFFSET S(25, 74)
-#define PASSED_PAWN_OFFSET S(-16, -10)
-#define BISHOP_PAIR S(23, 46)
-#define TEMPO S(11, 12)
-#define ISOLATED_PAWN S(9, 8)
-#define ROOK_OPEN S(24, 3)
-#define ROOK_SEMIOPEN S(10, 10)
-#define KING_OPEN S(-44, -4)
-#define KING_SEMIOPEN S(-9, 16)
-#define KING_RING_ATTACKS S(14, -6)
+#define PAWN_OFFSET S(29, 78)
+#define PASSED_PAWN_OFFSET S(-22, -10)
+#define BISHOP_PAIR S(27, 53)
+#define TEMPO S(23, 17)
+#define ISOLATED_PAWN S(11, 8)
+#define ROOK_OPEN S(30, 3)
+#define ROOK_SEMIOPEN S(14, 11)
+#define KING_OPEN S(-54, -3)
+#define KING_SEMIOPEN S(-11, 16)
+#define KING_RING_ATTACKS S(17, -7)
