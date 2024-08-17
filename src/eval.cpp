@@ -1,26 +1,26 @@
-// loss: 0.07908    train id: 2024-07-06-12-36-33-frzn-big3
+// loss: 0.03496    train id: 2024-08-17-15-19-15-frzn-big3-sf25k.mf
 
 #define S(a, b) (a + (b * 0x10000))
 
 int QUADRANTS[] = {
-    S(216, 234), S(228, 239), S(224, 233), S(223, 241),
-    S(236, 301), S(233, 307), S(238, 303), S(234, 306),
-    S(291, 558), S(304, 577), S(298, 551), S(321, 565),
-    S(608, 1095), S(594, 1132), S(611, 1095), S(605, 1144),
+    S(299, 284), S(317, 289), S(309, 282), S(311, 291),
+    S(330, 356), S(326, 363), S(333, 359), S(329, 361),
+    S(417, 675), S(434, 697), S(426, 665), S(456, 683),
+    S(865, 1336), S(842, 1385), S(870, 1335), S(861, 1395),
 };
-int PAWN_SHIELD[] = {S(-3, -7), S(4, -21), S(5, -16), S(13, -9)};
-int MOBILITY[] = {0, S(5, 9), S(1, 0), S(3, 5), S(2, 3), S(1, 4), S(-3, 5)};
+int PAWN_SHIELD[] = {S(2, -15), S(9, -31), S(11, -24), S(21, -17)};
+int MOBILITY[] = {0, S(8, 11), S(2, 0), S(5, 5), S(3, 3), S(2, 4), S(-4, 6)};
 
-#define DATA_STRING L"7PN521, ANF><:-(?GROLB2*EPZYRF>2U`zb`^H<>(^bEk2D97--2631%)%%+7-5&!))<C+4659BLF! 5CEIUQFUNBH]x@V?>\\E #4H61*]vaj )02+2@>6FHO=;NM\"$ $'30))85-')*7/28? +32)5/1#&*, ),/..33131,,*$$ (7C85.0$&5;;1--*//2335244226:9<AR=QTFMD|¢¢¨©¥1.% &*6.4@6.(0<4TXMA7;DIrtcNGKXd¢\\To~ ¤w@@CO^\"3/ 3JG4EXXI6=C0 Lfk]luzf|p -**$(*+1144*353!#& '''&\"#&$'))'% \",*$)/.=FA7FOT"
+#define DATA_STRING L"Ahf<7:3 OgXKII6-N]lieU?0Xl}{o]S=m¦y]IH,zµ³S<O>E818B>6*0'%3D:?) -+IU3B=<FQ`[/+>UW_nqfneR[}^hHDpL \";VH?0vy -;@3?RQD^bmRPjg&' &-=9..D?40//A7;DO 1=</@89)-02 -2766?><=:23/'$ &8NB:/4$$8@@3..+0./137565106<;@CX?[`NTI·»½ÅÄÃ52* ).?.:J;3*6C8_fZN?DMQw]QThwÉ¹«h^®¾ÄMCLdo\":7 9XU:OghU?KS? Yuzj}v¤¬² 210(,039:>?/=C?#&( -++*%%)(*..-,!\".$ %-*BMI;R\\g"
 
-#define PAWN_OFFSET S(23, 68)
-#define PASSED_PAWN_OFFSET S(-16, -8)
-#define BISHOP_PAIR S(23, 46)
-#define TEMPO S(11, 12)
-#define ISOLATED_PAWN S(10, 11)
-#define PROTECTED_PAWN S(7, 7)
-#define ROOK_OPEN S(24, 2)
-#define ROOK_SEMIOPEN S(9, 8)
-#define KING_OPEN S(-44, -4)
-#define KING_SEMIOPEN S(-10, 13)
-#define KING_RING_ATTACKS S(14, -6)
+#define PAWN_OFFSET S(35, 81)
+#define PASSED_PAWN_OFFSET S(-26, -10)
+#define BISHOP_PAIR S(33, 61)
+#define TEMPO S(22, 17)
+#define ISOLATED_PAWN S(14, 12)
+#define PROTECTED_PAWN S(10, 9)
+#define ROOK_OPEN S(34, 2)
+#define ROOK_SEMIOPEN S(15, 8)
+#define KING_OPEN S(-61, -4)
+#define KING_SEMIOPEN S(-14, 16)
+#define KING_RING_ATTACKS S(19, -8)
