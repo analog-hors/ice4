@@ -13,36 +13,41 @@ pub unsafe extern "C" fn feature_count() -> c_ulong {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn phase_feature_count() -> c_ulong {
+    (Piece::NUM - 1) as c_ulong
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn decode_data(
     board: *const PackedBoard,
     features: *mut Features,
-    phases: *mut f32,
+    phase_features: *mut [f32; Piece::NUM - 1],
     targets: *mut f32,
     count: usize,
 ) -> bool {
     std::panic::catch_unwind(|| {
         let boards = std::slice::from_raw_parts(board, count);
         let features = std::slice::from_raw_parts_mut(features, count);
-        let phases = std::slice::from_raw_parts_mut(phases, count);
+        let phase_features = std::slice::from_raw_parts_mut(phase_features, count);
         let targets = std::slice::from_raw_parts_mut(targets, count);
 
         boards
             .par_iter()
             .zip(features)
-            .zip(phases)
+            .zip(phase_features)
             .zip(targets)
-            .for_each(|(((board, features), phase), target)| {
+            .for_each(|(((board, features), phase_features), target)| {
                 let (board, _, outcome, _) = board.unpack().unwrap();
 
                 features.extract(&board);
 
-                *phase = (board.pieces(Piece::Pawn).len() * 0
-                    + board.pieces(Piece::Knight).len() * 1
-                    + board.pieces(Piece::Bishop).len() * 1
-                    + board.pieces(Piece::Rook).len() * 2
-                    + board.pieces(Piece::Queen).len() * 4
-                    + board.pieces(Piece::King).len() * 0) as f32
-                    / 24.0;
+                *phase_features = [
+                    board.pieces(Piece::Pawn).len() as f32,
+                    board.pieces(Piece::Knight).len() as f32,
+                    board.pieces(Piece::Bishop).len() as f32,
+                    board.pieces(Piece::Rook).len() as f32,
+                    board.pieces(Piece::Queen).len() as f32,
+                ];
 
                 *target = outcome as f32 / 2.0;
             });

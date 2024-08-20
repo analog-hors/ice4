@@ -13,6 +13,10 @@ PARSELIB.feature_count.argtypes = []
 PARSELIB.feature_count.restype = ctypes.c_ulong
 FEATURE_COUNT: int = PARSELIB.feature_count()
 
+PARSELIB.phase_feature_count.argtypes = []
+PARSELIB.phase_feature_count.restype = ctypes.c_ulong
+PHASE_FEATURE_COUNT: int = PARSELIB.phase_feature_count()
+
 # PARSELIB.decode_data.argtypes = [
 #     ctypes.POINTER(ctypes.c_ubyte),
 #     ctypes.POINTER(ctypes.c_float),
@@ -30,10 +34,10 @@ def batch_loader():
                 return
 
             features = numpy.zeros((batch_size, FEATURE_COUNT), dtype=ctypes.c_float)
-            phases = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
+            phase_features = numpy.zeros((batch_size, PHASE_FEATURE_COUNT), dtype=ctypes.c_float)
             targets = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
             features_c_array = numpy.ctypeslib.as_ctypes(features)
-            phases_c_array = numpy.ctypeslib.as_ctypes(phases)
+            phases_c_array = numpy.ctypeslib.as_ctypes(phase_features)
             targets_c_array = numpy.ctypeslib.as_ctypes(targets)
 
             result = PARSELIB.decode_data(
@@ -45,7 +49,7 @@ def batch_loader():
             )
             assert result
 
-            yield torch.from_numpy(features), torch.from_numpy(phases), torch.from_numpy(targets)
+            yield torch.from_numpy(features), torch.from_numpy(phase_features), torch.from_numpy(targets)
 
 class Model(torch.nn.Module):
     def __init__(self):
@@ -54,10 +58,14 @@ class Model(torch.nn.Module):
         torch.nn.init.zeros_(self.mg.weight)
         self.eg = torch.nn.Linear(FEATURE_COUNT, 1, bias=False)
         torch.nn.init.zeros_(self.eg.weight)
+        self.phase = torch.nn.Linear(PHASE_FEATURE_COUNT, 1, bias=False)
+        with torch.no_grad():
+            self.phase.weight.copy_(torch.tensor([[0, 1, 1, 2, 4]]) / 24)
 
-    def forward(self, features, phase):
+    def forward(self, features, phase_features):
         mg = self.mg(features)
         eg = self.eg(features)
+        phase = self.phase(phase_features)
 
         score = torch.lerp(eg, mg, phase)
 

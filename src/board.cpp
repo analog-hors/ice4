@@ -42,9 +42,9 @@ struct Board {
     uint8_t piece_file_counts[23][10];
     uint8_t ep_square;
     uint8_t stm;
-    uint8_t phase;
     uint8_t pawn_eval_dirty;
     uint8_t check;
+    int32_t phase;
     int32_t inc_eval;
     int32_t pawn_eval;
     uint64_t zobrist;
@@ -338,7 +338,7 @@ struct Board {
             }
         }
         stm_eval += stm == WHITE ? e : -e;
-        return ((int16_t)stm_eval * phase + (int16_t)(stm_eval + 0x8000 >> 16) * (24 - phase)) / 24;
+        return ((int16_t)stm_eval * phase + (int16_t)(stm_eval + 0x8000 >> 16) * (1024 - phase)) / 1024;
     }
 } ROOT;
 
