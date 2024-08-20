@@ -22,6 +22,7 @@ struct Searcher {
     int16_t evals[256];
     int64_t corr_hist[2][CORR_HIST_SIZE];
     HTable history;
+    HTable capthist;
     HTable conthist[14][SQUARE_SPAN];
     HTable *conthist_stack[256];
     uint64_t rep_list[256];
@@ -110,14 +111,15 @@ struct Searcher {
 
         for (int j = 0; j < mvcount; j++) {
             if (hashmv.from == moves[j].from && hashmv.to == moves[j].to) {
-                score[j] = 1e6;
+                score[j] = 1e8;
             } else if (board.board[moves[j].to]) {
                 // MVV-LVA capture ordering: 3 bytes (78a3963 vs 35f9b66)
                 // 8.0+0.08: 289.03 +- 7.40 (7378 - 563 - 2059) 96.34 elo/byte
                 // 60.0+0.6: 237.53 +- 6.10 (6384 - 445 - 3171) 79.18 elo/byte
-                score[j] = (board.board[moves[j].to] & 7) * 8
-                    - (board.board[moves[j].from] & 7)
-                    + 1e5;
+                score[j] = 1e7
+                    + (board.board[moves[j].to] & 7) * 1e6
+                    - (board.board[moves[j].from] & 7) * 1e5
+                    + capthist[board.board[moves[j].from]][moves[j].to];
             } else {
                 // Plain history: 28 bytes (676e7fa vs 4cabdf1)
                 // 8.0+0.08: 51.98 +- 5.13 (3566 - 2081 - 4353) 1.86 elo/byte
@@ -247,12 +249,12 @@ struct Searcher {
                 raised_alpha = 1;
             }
             if (v >= beta) {
-                if (!victim) {
-                    int16_t *hist;
-                    for (int j = 0; j < i; j++) {
-                        if (board.board[moves[j].to]) {
-                            continue;
-                        }
+                int16_t *hist;
+                for (int j = 0; j < i; j++) {
+                    if (board.board[moves[j].to]) {
+                        hist = &capthist[board.board[moves[i].from]][moves[i].to];
+                        *hist -= depth * depth + depth * depth * *hist / 512;
+                    } else if (!victim) {
                         hist = &history[board.board[moves[j].from]][moves[j].to];
                         *hist -= depth * depth + depth * depth * *hist / MAX_HIST;
                         hist = &(*conthist_stack[ply + 1])[board.board[moves[j].from]][moves[j].to];
@@ -260,6 +262,11 @@ struct Searcher {
                         hist = &(*conthist_stack[ply])[board.board[moves[j].from]][moves[j].to];
                         *hist -= depth * depth + depth * depth * *hist / MAX_HIST;
                     }
+                }
+                if (victim) {
+                    hist = &capthist[board.board[moves[i].from]][moves[i].to];
+                    *hist += depth * depth - depth * depth * *hist / 512;
+                } else {
                     hist = &history[board.board[moves[i].from]][moves[i].to];
                     *hist += depth * depth - depth * depth * *hist / MAX_HIST;
                     hist = &(*conthist_stack[ply + 1])[board.board[moves[i].from]][moves[i].to];
