@@ -5,7 +5,9 @@ use rayon::prelude::*;
 use marlinformat::PackedBoard;
 
 mod features;
+mod target;
 use features::Features;
+use target::make_target;
 
 #[no_mangle]
 pub unsafe extern "C" fn feature_count() -> c_ulong {
@@ -32,7 +34,7 @@ pub unsafe extern "C" fn decode_data(
             .zip(phases)
             .zip(targets)
             .for_each(|(((board, features), phase), target)| {
-                let (board, _, outcome, _) = board.unpack().unwrap();
+                let (board, cp, outcome, _) = board.unpack().unwrap();
 
                 features.extract(&board);
 
@@ -44,7 +46,8 @@ pub unsafe extern "C" fn decode_data(
                     + board.pieces(Piece::King).len() * 0) as f32
                     / 24.0;
 
-                *target = outcome as f32 / 2.0;
+                let ply = board.fullmove_number() as u32 * 2 - 2 + board.side_to_move() as u32;
+                *target = make_target(outcome, cp, ply, 1.0);
             });
     })
     .is_ok()
