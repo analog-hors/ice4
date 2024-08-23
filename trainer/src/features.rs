@@ -28,6 +28,7 @@ pub struct Features {
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
     king_ring_attacks: f32,
+    pawn_dist: [f32; 6],
 }
 
 impl Features {
@@ -118,6 +119,12 @@ impl Features {
                 self.king_ring_attacks +=
                     inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
                 self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+
+                for pawn_square in board.colored_pieces(color, Piece::Pawn) {
+                    let file_dist = (pawn_square.file() as u32).abs_diff(unflipped_square.file() as u32);
+                    let rank_dist = (pawn_square.rank() as u32).abs_diff(unflipped_square.rank() as u32);
+                    self.pawn_dist[piece as usize] += (file_dist + rank_dist) as f32 * inc;
+                }
             }
         }
 

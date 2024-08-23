@@ -298,6 +298,16 @@ struct Board {
                         sq = 9 + rank - file;
                     }
                     pawn_eval += PST[own_pawn][sq-A1];
+
+                    for (int other_rank = 20; other_rank <= 90; other_rank += 10) {
+                        for (int other_file = 1; other_file <= 8; other_file++) {
+                            int piece = board[other_rank + other_file];
+                            if (piece & color) {
+                                int dist = abs(rank - other_rank) + abs(file - other_file);
+                                pawn_eval += dist * PAWN_DIST[piece ^ color];
+                            }
+                        }
+                    }
                 }
             }
         }
