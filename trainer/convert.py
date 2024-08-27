@@ -27,8 +27,8 @@ def to_evalcpp(last_loss, train_id, param_map):
     print("#define S(a, b) (a + (b * 0x10000))")
     print()
 
-    mg = deque(v * 160 for v in param_map["mg.weight"][0])
-    eg = deque(v * 160 for v in param_map["eg.weight"][0])
+    mg = deque(v * 100 for v in param_map["mg.weight"][0])
+    eg = deque(v * 100 for v in param_map["eg.weight"][0])
 
     mg_stringer = DataStringer()
     eg_stringer = DataStringer()
