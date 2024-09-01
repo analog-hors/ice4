@@ -31,21 +31,30 @@ def batch_loader():
 
             features = numpy.zeros((batch_size, FEATURE_COUNT), dtype=ctypes.c_float)
             phases = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
+            eg_scales = numpy.zeros((batch_size, 2), dtype=ctypes.c_float)
             targets = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
+            
             features_c_array = numpy.ctypeslib.as_ctypes(features)
             phases_c_array = numpy.ctypeslib.as_ctypes(phases)
+            eg_scales_c_array = numpy.ctypeslib.as_ctypes(eg_scales)
             targets_c_array = numpy.ctypeslib.as_ctypes(targets)
 
             result = PARSELIB.decode_data(
                 data,
                 features_c_array,
                 phases_c_array,
+                eg_scales_c_array,
                 targets_c_array,
                 batch_size
             )
             assert result
 
-            yield torch.from_numpy(features), torch.from_numpy(phases), torch.from_numpy(targets)
+            yield (
+                torch.from_numpy(features),
+                torch.from_numpy(phases),
+                torch.from_numpy(eg_scales),
+                torch.from_numpy(targets),
+            )
 
 class Model(torch.nn.Module):
     def __init__(self):
@@ -55,11 +64,14 @@ class Model(torch.nn.Module):
         self.eg = torch.nn.Linear(FEATURE_COUNT, 1, bias=False)
         torch.nn.init.zeros_(self.eg.weight)
 
-    def forward(self, features, phase):
+    def forward(self, features, phase, eg_scales):
         mg = self.mg(features)
         eg = self.eg(features)
+        
+        scale_indices = (eg < 0).long().squeeze()
+        scales = eg_scales[range(scale_indices.shape[0]), scale_indices].reshape((-1, 1))
 
-        score = torch.lerp(eg, mg, phase)
+        score = torch.lerp(eg * scales, mg, phase)
 
         return torch.sigmoid(score)
 
@@ -77,9 +89,9 @@ for epoch in range(15):
     running_loss = 0
     poses = 0
     start = time()
-    for features, phases, targets in batch_loader():
+    for features, phases, eg_scales, targets in batch_loader():
         optimizer.zero_grad()
-        outputs = model(features, phases)
+        outputs = model(features, phases, eg_scales)
         loss = torch.mean(torch.abs(outputs - targets) ** 2.6)
         loss.backward()
         optimizer.step()

@@ -37,6 +37,7 @@ vector< atomic<TtData> > TT(HASH_SIZE);
 struct Board {
     uint8_t board[120];
     uint8_t castle_rights;
+    uint8_t pawns[2];
     uint8_t bishops[2];
     uint8_t king_sq[2];
     uint8_t piece_file_counts[23][10];
@@ -62,6 +63,9 @@ struct Board {
             inc_eval -= PST[board[square]][square-A1];
         }
         phase -= PHASE[board[square] & 7];
+        if ((board[square] & 7) == PAWN) {
+            pawns[!(board[square] & WHITE)]--;
+        }
         if ((board[square] & 7) == BISHOP) {
             bishops[!(board[square] & WHITE)]--;
         }
@@ -74,6 +78,9 @@ struct Board {
             inc_eval += PST[board[square]][square-A1];
         }
         phase += PHASE[board[square] & 7];
+        if ((board[square] & 7) == PAWN) {
+            pawns[!(board[square] & WHITE)]++;
+        }
         if ((board[square] & 7) == BISHOP) {
             bishops[!(board[square] & WHITE)]++;
         }
@@ -342,7 +349,10 @@ struct Board {
             }
         }
         stm_eval += stm == WHITE ? e : -e;
-        return ((int16_t)stm_eval * phase + (int16_t)(stm_eval + 0x8000 >> 16) * (24 - phase)) / 24;
+
+        int eg = (int16_t)(stm_eval + 0x8000 >> 16);
+        int eg_scale = 128 - (8 - pawns[eg < 0]) * (8 - pawns[eg < 0]);
+        return ((int16_t)stm_eval * phase + eg * (24 - phase) * eg_scale / 128) / 24;
     }
 } ROOT;
 
