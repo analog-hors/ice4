@@ -352,7 +352,7 @@ struct Board {
 
         int eg = (int16_t)(stm_eval + 0x8000 >> 16);
         int eg_scale = 128 - (8 - pawns[(eg >= 0) ^ (stm == WHITE)]) * (8 - pawns[(eg >= 0) ^ (stm == WHITE)]);
-        return ((int16_t)stm_eval * phase + eg * (24 - phase) * eg_scale / 128) / 24;
+        return ((int16_t)stm_eval * phase + eg * (24 - phase) * eg_scale / 64) / 24;
     }
 } ROOT;
 

@@ -47,7 +47,7 @@ pub unsafe extern "C" fn decode_data(
                     + board.pieces(Piece::King).len() * 0) as f32
                     / 24.0;
                 
-                let pawn_scale = |pawns: u32| (128 - (8 - pawns).pow(2)) as f32 / 128.0;
+                let pawn_scale = |pawns: u32| (128 - (8 - pawns).pow(2)) as f32 / 64.0;
                 let white_pawns = board.colored_pieces(Color::White, Piece::Pawn).len();
                 let black_pawns = board.colored_pieces(Color::Black, Piece::Pawn).len();
                 *eg_scales = [pawn_scale(white_pawns), pawn_scale(black_pawns)];
