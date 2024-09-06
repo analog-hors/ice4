@@ -55,21 +55,21 @@ struct Board {
         if ((board[square] & 7) == PAWN || (piece & 7) == PAWN || (piece & 7) == KING) {
             pawn_eval_dirty = 1;
         }
-        zobrist ^= ZOBRIST.pieces[board[square]][square];
+        zobrist ^= ZOBRIST[board[square]][square];
         piece_file_counts[board[square]][square % 10]--;
-        material_hash ^= ZOBRIST.pieces[board[square]][piece_counts[board[square]]--];
+        material_hash ^= ZOBRIST[board[square]][piece_counts[board[square]]--];
         if ((board[square] & 7) == PAWN) {
-            pawn_hash ^= ZOBRIST.pieces[board[square]][square];
+            pawn_hash ^= ZOBRIST[board[square]][square];
         } else {
             inc_eval -= PST[board[square]][square-A1];
         }
         phase -= PHASE[board[square] & 7];
         board[square] = piece;
-        zobrist ^= ZOBRIST.pieces[board[square]][square];
+        zobrist ^= ZOBRIST[board[square]][square];
         piece_file_counts[board[square]][square % 10]++;
-        material_hash ^= ZOBRIST.pieces[board[square]][++piece_counts[board[square]]];
+        material_hash ^= ZOBRIST[board[square]][++piece_counts[board[square]]];
         if ((board[square] & 7) == PAWN) {
-            pawn_hash ^= ZOBRIST.pieces[board[square]][square];
+            pawn_hash ^= ZOBRIST[board[square]][square];
         } else {
             inc_eval += PST[board[square]][square-A1];
         }
@@ -124,7 +124,7 @@ struct Board {
         edit(mv.from, EMPTY);
 
         // handle en-passant
-        zobrist ^= ZOBRIST.ep[ep_square];
+        zobrist ^= ZOBRIST[EMPTY][ep_square];
         int ep = stm != WHITE ? 10 : -10;
         if ((piece & 7) == PAWN) {
             if (mv.to == ep_square) {
@@ -138,10 +138,10 @@ struct Board {
         } else {
             ep_square = 0;
         }
-        zobrist ^= ZOBRIST.ep[ep_square];
+        zobrist ^= ZOBRIST[EMPTY][ep_square];
 
         // handle castling
-        zobrist ^= ZOBRIST.castle_rights[castle_rights];
+        zobrist ^= ZOBRIST[EMPTY][castle_rights];
         int back_rank = stm != WHITE ? A8 : A1;
         if ((piece & 7) == KING && mv.from == back_rank + 4) {
             if (mv.to == back_rank + 6) {
@@ -173,7 +173,7 @@ struct Board {
         if (mv.from == H8 || mv.to == H8) {
             castle_rights |= BLACK_SHORT_CASTLE;
         }
-        zobrist ^= ZOBRIST.castle_rights[castle_rights];
+        zobrist ^= ZOBRIST[EMPTY][castle_rights];
 
         if (attacked(king_sq[stm != WHITE], NSTM)) {
             return 1;
@@ -181,7 +181,7 @@ struct Board {
 
         check = attacked(king_sq[stm == WHITE], stm);
         stm ^= INVALID;
-        zobrist ^= ZOBRIST.stm;
+        zobrist ^= ZOBRIST[EMPTY][0];
         return 0;
 
         #undef NSTM
@@ -403,7 +403,7 @@ void parse_fen() {
 
     if (*strtok(0, " \n") == 'b') {
         ROOT.stm = BLACK;
-        ROOT.zobrist ^= ZOBRIST.stm;
+        ROOT.zobrist ^= ZOBRIST[EMPTY][0];
     }
 
     word = strtok(0, " \n");
@@ -427,7 +427,7 @@ void parse_fen() {
                 break;
         }
     }
-    ROOT.zobrist ^= ZOBRIST.castle_rights[ROOT.castle_rights];
+    ROOT.zobrist ^= ZOBRIST[EMPTY][ROOT.castle_rights];
     if (remove_white_short) {
         ROOT.castle_rights |= WHITE_SHORT_CASTLE;
     }
@@ -440,7 +440,7 @@ void parse_fen() {
     if (remove_black_long) {
         ROOT.castle_rights |= BLACK_LONG_CASTLE;
     }
-    ROOT.zobrist ^= ZOBRIST.castle_rights[ROOT.castle_rights];
+    ROOT.zobrist ^= ZOBRIST[EMPTY][ROOT.castle_rights];
 
     word = strtok(0, " \n");
     if (*word != '-') {
