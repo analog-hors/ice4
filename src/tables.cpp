@@ -31,7 +31,7 @@ uint64_t rng() {
 #endif
 
 struct Zobrist {
-    uint64_t pieces[25][SQUARE_SPAN];
+    uint64_t pieces[25][256];
     uint64_t ep[120];
     uint64_t castle_rights[16];
     uint64_t stm;
@@ -62,7 +62,7 @@ void init_tables() {
     // Zobrist keys
 #ifdef OPENBENCH
     for (int i = 0; i < 25; i++) {
-        for (int j = 0; j < SQUARE_SPAN; j++) {
+        for (int j = 0; j < 256; j++) {
             ZOBRIST.pieces[i][j] = rng();
         }
     }

@@ -57,9 +57,7 @@ struct Board {
         }
         zobrist ^= ZOBRIST.pieces[board[square]][square];
         piece_file_counts[board[square]][square % 10]--;
-        if (board[square] & 7) {
-            material_hash ^= ZOBRIST.pieces[board[square]][piece_counts[board[square]]--];
-        }
+        material_hash ^= ZOBRIST.pieces[board[square]][piece_counts[board[square]]--];
         if ((board[square] & 7) == PAWN) {
             pawn_hash ^= ZOBRIST.pieces[board[square]][square];
         } else {
@@ -69,9 +67,7 @@ struct Board {
         board[square] = piece;
         zobrist ^= ZOBRIST.pieces[board[square]][square];
         piece_file_counts[board[square]][square % 10]++;
-        if (board[square] & 7) {
-            material_hash ^= ZOBRIST.pieces[board[square]][++piece_counts[board[square]]];
-        }
+        material_hash ^= ZOBRIST.pieces[board[square]][++piece_counts[board[square]]];
         if ((board[square] & 7) == PAWN) {
             pawn_hash ^= ZOBRIST.pieces[board[square]][square];
         } else {
