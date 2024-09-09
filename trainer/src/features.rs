@@ -5,7 +5,7 @@ use cozy_chess::{
 
 #[derive(Debug)]
 #[repr(C)]
-pub struct Features {
+pub struct LinearFeatures {
     pawn_pst: [f32; 48],
     king_pst: [f32; 16],
     knight_pst: [f32; 16],
@@ -30,7 +30,7 @@ pub struct Features {
     passed_pawn_ranks: [f32; 6],
 }
 
-impl Features {
+impl LinearFeatures {
     pub const COUNT: usize = std::mem::size_of::<Self>() / std::mem::size_of::<f32>();
 
     fn quad(&mut self, piece: Piece) -> &mut [f32; 3] {
@@ -52,158 +52,166 @@ impl Features {
             _ => unreachable!(),
         }
     }
+}
 
-    pub fn extract(&mut self, board: &Board) {
-        for &piece in &Piece::ALL {
-            for unflipped_square in board.pieces(piece) {
-                let color = board.color_on(unflipped_square).unwrap();
-                let (square, inc) = match color {
-                    Color::White => (unflipped_square, 1.0),
-                    Color::Black => (unflipped_square.flip_rank(), -1.0),
-                };
-
-                if piece == Piece::Rook {
-                    let file = square.file().bitboard();
-                    if board.pieces(Piece::Pawn).is_disjoint(file) {
-                        self.rook_on_open_file += inc;
-                    } else if board.colored_pieces(color, Piece::Pawn).is_disjoint(file) {
-                        self.rook_on_semiopen_file += inc;
-                    }
-                }
-
-                if piece == Piece::King {
-                    let file = square.file().bitboard();
-                    if board.pieces(Piece::Pawn).is_disjoint(file) {
-                        self.king_on_open_file += inc;
-                    } else if board.colored_pieces(color, Piece::Pawn).is_disjoint(file) {
-                        self.king_on_semiopen_file += inc;
-                    }
-                }
-
-                match piece {
-                    Piece::Knight | Piece::Bishop | Piece::Rook | Piece::Queen => {
-                        let quad = (square.file() > File::D) as usize * 2
-                            + (square.rank() > Rank::Fourth) as usize;
-                        if quad != 0 {
-                            self.quad(piece)[quad - 1] += inc;
-                        }
-                        self.quad_pst(piece)[quadrant_feature(square)] += inc;
-                    }
-                    Piece::King => {
-                        self.king_pst
-                            [square.rank() as usize / 2 * 4 + square.file() as usize / 2] += inc
-                    }
-                    Piece::Pawn => {
-                        self.pawn_pst[match board.king(color).file() > File::D {
-                            true => square.flip_file() as usize - 8,
-                            false => square as usize - 8,
-                        }] += inc
-                    }
-                }
-
-                let mob = match piece {
-                    Piece::Pawn => {
-                        get_pawn_quiets(unflipped_square, color, board.occupied())
-                            | (get_pawn_attacks(unflipped_square, color) & board.colors(!color))
-                    }
-                    Piece::Knight => get_knight_moves(unflipped_square),
-                    Piece::Bishop => get_bishop_moves(unflipped_square, board.occupied()),
-                    Piece::Rook => get_rook_moves(unflipped_square, board.occupied()),
-                    Piece::Queen => {
-                        get_bishop_moves(unflipped_square, board.occupied())
-                            | get_rook_moves(unflipped_square, board.occupied())
-                    }
-                    Piece::King => get_king_moves(unflipped_square),
-                };
-                self.king_ring_attacks +=
-                    inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
-                self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
-            }
-        }
-
-        for &color in &Color::ALL {
-            for square in board.pieces(Piece::Pawn) & board.colors(color) {
-                let mut passer_mask = square.file().adjacent() | square.file().bitboard();
-                match color {
-                    Color::White => {
-                        for r in 0..=square.rank() as usize {
-                            passer_mask &= !Rank::index(r).bitboard();
-                        }
-                    }
-                    Color::Black => {
-                        for r in square.rank() as usize + 1..8 {
-                            passer_mask &= !Rank::index(r).bitboard();
-                        }
-                    }
-                }
-
-                if !passer_mask.is_disjoint(board.colored_pieces(!color, Piece::Pawn)) {
-                    continue;
-                }
-
-                let square = match board.king(color).file() > File::D {
-                    true => square.flip_file(),
-                    false => square,
-                };
-
-                let (rank, inc) = match color {
-                    Color::White => (square.rank() as usize, 1.0),
-                    Color::Black => (square.rank().flip() as usize, -1.0),
-                };
-                self.passed_pawn_ranks[rank - 1] += inc;
-            }
-        }
-
-        let pawns = board.colored_pieces(Color::White, Piece::Pawn);
-        let pawn_attacks_right = BitBoard((pawns & !File::A.bitboard()).0 << 7);
-        let pawn_attacks_left = BitBoard((pawns & !File::H.bitboard()).0 << 9);
-        self.protected_pawn += ((pawn_attacks_left | pawn_attacks_right) & pawns).len() as f32;
-
-        let pawns = board.colored_pieces(Color::Black, Piece::Pawn);
-        let pawn_attacks_right = BitBoard((pawns & !File::A.bitboard()).0 >> 9);
-        let pawn_attacks_left = BitBoard((pawns & !File::H.bitboard()).0 >> 7);
-        self.protected_pawn -= ((pawn_attacks_left | pawn_attacks_right) & pawns).len() as f32;
-
-        for color in Color::ALL {
-            let inc = match color {
-                Color::White => 1.0,
-                Color::Black => -1.0,
+pub fn extract_features(board: &Board, linear: &mut LinearFeatures, phase: &mut f32) {
+    for &piece in &Piece::ALL {
+        for unflipped_square in board.pieces(piece) {
+            let color = board.color_on(unflipped_square).unwrap();
+            let (square, inc) = match color {
+                Color::White => (unflipped_square, 1.0),
+                Color::Black => (unflipped_square.flip_rank(), -1.0),
             };
-            if board.colored_pieces(color, Piece::Bishop).len() >= 2 {
-                self.bishop_pair += inc;
-            }
-            if color == board.side_to_move() {
-                self.tempo += inc;
-            }
 
-            for sq in board.colored_pieces(color, Piece::Pawn) {
-                if sq
-                    .file()
-                    .adjacent()
-                    .is_disjoint(board.colored_pieces(color, Piece::Pawn))
-                {
-                    self.isolated_pawn += inc;
+            if piece == Piece::Rook {
+                let file = square.file().bitboard();
+                if board.pieces(Piece::Pawn).is_disjoint(file) {
+                    linear.rook_on_open_file += inc;
+                } else if board.colored_pieces(color, Piece::Pawn).is_disjoint(file) {
+                    linear.rook_on_semiopen_file += inc;
                 }
             }
 
-            let king = board.king(color);
-            if king.rank() == Rank::First.relative_to(color) {
-                let pawns = board.colored_pieces(color, Piece::Pawn);
-                let mut shield_pawns = 0;
-                for dx in -1..=1 {
-                    for dy in 1..3 {
-                        if let Some(sq) = king.try_offset(dx, dy * inc as i8) {
-                            if pawns.has(sq) {
-                                shield_pawns += 1;
-                                break;
-                            }
-                        }
+            if piece == Piece::King {
+                let file = square.file().bitboard();
+                if board.pieces(Piece::Pawn).is_disjoint(file) {
+                    linear.king_on_open_file += inc;
+                } else if board.colored_pieces(color, Piece::Pawn).is_disjoint(file) {
+                    linear.king_on_semiopen_file += inc;
+                }
+            }
+
+            match piece {
+                Piece::Knight | Piece::Bishop | Piece::Rook | Piece::Queen => {
+                    let quad = (square.file() > File::D) as usize * 2
+                        + (square.rank() > Rank::Fourth) as usize;
+                    if quad != 0 {
+                        linear.quad(piece)[quad - 1] += inc;
                     }
+                    linear.quad_pst(piece)[quadrant_feature(square)] += inc;
                 }
-                self.shield_pawns[shield_pawns] += inc;
+                Piece::King => {
+                    linear.king_pst
+                        [square.rank() as usize / 2 * 4 + square.file() as usize / 2] += inc
+                }
+                Piece::Pawn => {
+                    linear.pawn_pst[match board.king(color).file() > File::D {
+                        true => square.flip_file() as usize - 8,
+                        false => square as usize - 8,
+                    }] += inc
+                }
             }
+
+            let mob = match piece {
+                Piece::Pawn => {
+                    get_pawn_quiets(unflipped_square, color, board.occupied())
+                        | (get_pawn_attacks(unflipped_square, color) & board.colors(!color))
+                }
+                Piece::Knight => get_knight_moves(unflipped_square),
+                Piece::Bishop => get_bishop_moves(unflipped_square, board.occupied()),
+                Piece::Rook => get_rook_moves(unflipped_square, board.occupied()),
+                Piece::Queen => {
+                    get_bishop_moves(unflipped_square, board.occupied())
+                        | get_rook_moves(unflipped_square, board.occupied())
+                }
+                Piece::King => get_king_moves(unflipped_square),
+            };
+            linear.king_ring_attacks +=
+                inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
+            linear.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
         }
     }
+
+    for &color in &Color::ALL {
+        for square in board.pieces(Piece::Pawn) & board.colors(color) {
+            let mut passer_mask = square.file().adjacent() | square.file().bitboard();
+            match color {
+                Color::White => {
+                    for r in 0..=square.rank() as usize {
+                        passer_mask &= !Rank::index(r).bitboard();
+                    }
+                }
+                Color::Black => {
+                    for r in square.rank() as usize + 1..8 {
+                        passer_mask &= !Rank::index(r).bitboard();
+                    }
+                }
+            }
+
+            if !passer_mask.is_disjoint(board.colored_pieces(!color, Piece::Pawn)) {
+                continue;
+            }
+
+            let square = match board.king(color).file() > File::D {
+                true => square.flip_file(),
+                false => square,
+            };
+
+            let (rank, inc) = match color {
+                Color::White => (square.rank() as usize, 1.0),
+                Color::Black => (square.rank().flip() as usize, -1.0),
+            };
+            linear.passed_pawn_ranks[rank - 1] += inc;
+        }
+    }
+
+    let pawns = board.colored_pieces(Color::White, Piece::Pawn);
+    let pawn_attacks_right = BitBoard((pawns & !File::A.bitboard()).0 << 7);
+    let pawn_attacks_left = BitBoard((pawns & !File::H.bitboard()).0 << 9);
+    linear.protected_pawn += ((pawn_attacks_left | pawn_attacks_right) & pawns).len() as f32;
+
+    let pawns = board.colored_pieces(Color::Black, Piece::Pawn);
+    let pawn_attacks_right = BitBoard((pawns & !File::A.bitboard()).0 >> 9);
+    let pawn_attacks_left = BitBoard((pawns & !File::H.bitboard()).0 >> 7);
+    linear.protected_pawn -= ((pawn_attacks_left | pawn_attacks_right) & pawns).len() as f32;
+
+    for color in Color::ALL {
+        let inc = match color {
+            Color::White => 1.0,
+            Color::Black => -1.0,
+        };
+        if board.colored_pieces(color, Piece::Bishop).len() >= 2 {
+            linear.bishop_pair += inc;
+        }
+        if color == board.side_to_move() {
+            linear.tempo += inc;
+        }
+
+        for sq in board.colored_pieces(color, Piece::Pawn) {
+            if sq
+                .file()
+                .adjacent()
+                .is_disjoint(board.colored_pieces(color, Piece::Pawn))
+            {
+                linear.isolated_pawn += inc;
+            }
+        }
+
+        let king = board.king(color);
+        if king.rank() == Rank::First.relative_to(color) {
+            let pawns = board.colored_pieces(color, Piece::Pawn);
+            let mut shield_pawns = 0;
+            for dx in -1..=1 {
+                for dy in 1..3 {
+                    if let Some(sq) = king.try_offset(dx, dy * inc as i8) {
+                        if pawns.has(sq) {
+                            shield_pawns += 1;
+                            break;
+                        }
+                    }
+                }
+            }
+            linear.shield_pawns[shield_pawns] += inc;
+        }
+    }
+
+    *phase = (board.pieces(Piece::Pawn).len() * 0
+        + board.pieces(Piece::Knight).len() * 1
+        + board.pieces(Piece::Bishop).len() * 1
+        + board.pieces(Piece::Rook).len() * 2
+        + board.pieces(Piece::Queen).len() * 4
+        + board.pieces(Piece::King).len() * 0) as f32
+        / 24.0;
 }
 
 fn quadrant_feature(square: Square) -> usize {
