@@ -58,18 +58,40 @@ def batch_loader():
 class Model(torch.nn.Module):
     def __init__(self):
         super().__init__()
+        
         self.mg = torch.nn.Linear(LINEAR_FEATURE_COUNT, 1, bias=False)
         torch.nn.init.zeros_(self.mg.weight)
+
         self.eg = torch.nn.Linear(LINEAR_FEATURE_COUNT, 1, bias=False)
         torch.nn.init.zeros_(self.eg.weight)
+
+        self.king_attack_power = torch.nn.Linear(4, 1, bias=False)
+        torch.nn.init.zeros_(self.king_attack_power.weight)
+
+        self.king_attack_scale = torch.nn.Embedding(8, 1)
+        torch.nn.init.ones_(self.king_attack_scale.weight)
 
     def forward(self, linear: torch.Tensor, king_safety: torch.Tensor, phase: torch.Tensor):
         mg = self.mg(linear)
         eg = self.eg(linear)
 
-        score = torch.lerp(eg, mg, phase)
+        king_attack_count = king_safety[:, :2].reshape((-1, 2, 1))
+        king_attack_power_features = king_safety[:, 2:].reshape((-1, 2, 4))
+
+        king_attack_power = self.king_attack_power(king_attack_power_features)
+        king_attack_scale = self.king_attack_scale(king_attack_count.squeeze().long().clamp(0, 7))
+        king_attack = king_attack_power * king_attack_scale
+        king_attack = king_attack[:, 0] - king_attack[:, 1]
+
+        score = torch.lerp(eg, mg + king_attack, phase)
 
         return torch.sigmoid(score)
+
+def clip_weights_to_unit(module):
+    if hasattr(module, "weight"):
+        w = module.weight.data
+        w = w.clamp(0, 1)
+        module.weight.data = w
 
 train_id = strftime("%Y-%m-%d-%H-%M-%S-") + os.path.splitext(os.path.basename(DATASET_PATH))[0]
 model = Model()
@@ -92,6 +114,7 @@ for epoch in range(15):
         loss = torch.mean(torch.abs(output - target) ** 2.6)
         loss.backward()
         optimizer.step()
+        model.king_attack_scale.apply(clip_weights_to_unit)
 
         running_loss += loss.item()
         iters += 1
