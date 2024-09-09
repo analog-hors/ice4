@@ -49,6 +49,7 @@ struct Board {
     uint64_t zobrist;
     uint64_t pawn_hash;
     uint64_t material_hash;
+    uint64_t blocks_passer;
 
     void edit(int square, int piece) {
         if ((board[square] & 7) == PAWN || (piece & 7) == PAWN || (piece & 7) == KING) {
@@ -58,6 +59,11 @@ struct Board {
         piece_file_counts[board[square]][square % 10]--;
         if (board[square] & 7) {
             material_hash ^= ZOBRIST[board[square]][piece_counts[board[square]]--];
+            if (blocks_passer & 1ull << square * 81 / 5 % 64) {
+                pawn_eval -= square >= A5
+                    ? BLOCKED_PASSER_RANK[square / 10 - 6]
+                    : -BLOCKED_PASSER_RANK[5 - square / 10];
+            }
         }
         if ((board[square] & 7) == PAWN) {
             pawn_hash ^= ZOBRIST[board[square]][square];
@@ -70,6 +76,11 @@ struct Board {
         piece_file_counts[board[square]][square % 10]++;
         if (board[square] & 7) {
             material_hash ^= ZOBRIST[board[square]][++piece_counts[board[square]]];
+            if (blocks_passer & 1ull << square * 81 / 5 % 64) {
+                pawn_eval += square >= A5
+                    ? BLOCKED_PASSER_RANK[square / 10 - 6]
+                    : -BLOCKED_PASSER_RANK[5 - square / 10];
+            }
         }
         if ((board[square] & 7) == PAWN) {
             pawn_hash ^= ZOBRIST[board[square]][square];
@@ -281,10 +292,14 @@ struct Board {
             if (!piece_file_counts[own_pawn][file-1] && !piece_file_counts[own_pawn][file+1]) {
                 pawn_eval -= ISOLATED_PAWN * piece_file_counts[own_pawn][file];
             }
-            for (int rank = 6; rank > 0; rank--) {
+            for (int rank = 6; rank >= 3; rank--) {
                 int sq = file + first_rank + rank * pawndir;
                 if (board[sq] == own_pawn) {
-                    pawn_eval += PASSER_RANK[rank-1];
+                    pawn_eval += PASSER_RANK[rank-3];
+                    blocks_passer |= 1ull << (sq + pawndir) * 81 / 5 % 64;
+                    if (board[sq + pawndir]) {
+                        pawn_eval += BLOCKED_PASSER_RANK[rank-3];
+                    }
                 }
                 if (board[sq] == opp_pawn || board[sq-1] == opp_pawn || board[sq+1] == opp_pawn) {
                     break;
@@ -316,11 +331,12 @@ struct Board {
 
     int eval(int stm_eval) {
         if (pawn_eval_dirty) {
+            pawn_eval_dirty = 0;
+            blocks_passer = 0;
             pawn_eval = 0;
             calculate_pawn_eval(1, BLACK, -10, 90, 30);
             pawn_eval = -pawn_eval;
             calculate_pawn_eval(0, WHITE, 10, 20, 80);
-            pawn_eval_dirty = 0;
         }
 
         // Bishop pair: 29 bytes (v5)

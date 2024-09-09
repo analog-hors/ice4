@@ -27,7 +27,8 @@ pub struct Features {
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
     king_ring_attacks: f32,
-    passed_pawn_ranks: [f32; 6],
+    passed_pawn_ranks: [f32; 4],
+    blocked_passer_rank: [f32; 4],
 }
 
 impl Features {
@@ -131,7 +132,7 @@ impl Features {
                         }
                     }
                     Color::Black => {
-                        for r in square.rank() as usize + 1..8 {
+                        for r in square.rank() as usize..8 {
                             passer_mask &= !Rank::index(r).bitboard();
                         }
                     }
@@ -141,16 +142,21 @@ impl Features {
                     continue;
                 }
 
-                let square = match board.king(color).file() > File::D {
-                    true => square.flip_file(),
-                    false => square,
-                };
-
                 let (rank, inc) = match color {
                     Color::White => (square.rank() as usize, 1.0),
                     Color::Black => (square.rank().flip() as usize, -1.0),
                 };
-                self.passed_pawn_ranks[rank - 1] += inc;
+                if rank >= 3 {
+                    self.passed_pawn_ranks[rank - 3] += inc;
+
+                    let forward = match color {
+                        Color::White => square.offset(0, 1),
+                        Color::Black => square.offset(0, -1),
+                    };
+                    if board.occupied().has(forward) {
+                        self.blocked_passer_rank[rank - 3] += inc;
+                    }
+                }
             }
         }
 
