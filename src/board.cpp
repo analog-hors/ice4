@@ -198,7 +198,9 @@ struct Board {
         // Mobility: 26 bytes (v5)
         // 8.0+0.08: 103.92 +- 5.26 [970, 1765, 1563, 604, 98] 4.00 elo/byte
         int king_ring[120] = {};
+        int dir = stm == WHITE ? 10 : -10;
         #define OTHER (stm ^ INVALID)
+        #define ENEMY_PAWN (PAWN | stm ^ INVALID)
         count = 0;
         mobility = 0;
         for (int i = 0; i < 8; i++) {
@@ -211,6 +213,8 @@ struct Board {
             }
 
             int piece = board[sq] & 7;
+            #define MOBILITY_COND board[MOB_SQUARE + dir - 1] != ENEMY_PAWN && board[MOB_SQUARE + dir + 1] != ENEMY_PAWN
+            #define APPLY_MOBILITY if (MOBILITY_COND) { mobility += MOBILITY[piece] + king_ring[MOB_SQUARE]; }
 
             if (piece == KING && sq == (stm == WHITE ? E1 : E8) && quiets) {
                 if (!(castle_rights >> 2*(stm != WHITE) & SHORT_CASTLE) &&
@@ -224,26 +228,33 @@ struct Board {
             }
 
             if (piece == PAWN) {
-                int dir = stm == WHITE ? 10 : -10;
                 int promo = board[sq + dir + dir] == INVALID ? QUEEN : 0;
                 if (!board[sq + dir]) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir];
+                    #define MOB_SQUARE sq + dir
+                    APPLY_MOBILITY
+                    #undef MOB_SQUARE
                     if (quiets || promo || board[sq + dir + dir + dir] == INVALID) {
                         list[count++] = create_move(sq, sq + dir, promo);
                     }
                     if (board[sq - dir - dir] == INVALID && !board[sq + dir + dir]) {
-                        mobility += MOBILITY[piece] + king_ring[sq + dir+dir];
+                        #define MOB_SQUARE sq + dir+dir
+                        APPLY_MOBILITY
+                        #undef MOB_SQUARE
                         if (quiets) {
                             list[count++] = create_move(sq, sq + dir+dir, promo);
                         }
                     }
                 }
                 if (ep_square == sq + dir-1 || board[sq + dir-1] & OTHER && ~board[sq + dir-1] & stm) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir-1];
+                    #define MOB_SQUARE sq + dir-1
+                    APPLY_MOBILITY
+                    #undef MOB_SQUARE
                     list[count++] = create_move(sq, sq + dir-1, promo);
                 }
                 if (ep_square == sq + dir+1 || board[sq + dir+1] & OTHER && ~board[sq + dir+1] & stm) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir+1];
+                    #define MOB_SQUARE sq + dir+1
+                    APPLY_MOBILITY
+                    #undef MOB_SQUARE
                     list[count++] = create_move(sq, sq + dir+1, promo);
                 }
             } else {
@@ -254,7 +265,9 @@ struct Board {
                         if (board[raysq] & stm) {
                             break;
                         }
-                        mobility += MOBILITY[piece] + king_ring[raysq];
+                        #define MOB_SQUARE raysq
+                        APPLY_MOBILITY
+                        #undef MOB_SQUARE
                         if (board[raysq] & OTHER) {
                             list[count++] = create_move(sq, raysq, 0);
                             break;
@@ -264,8 +277,12 @@ struct Board {
                     }
                 }
             }
+
+            #undef MOBILITY_COND
+            #undef APPLY_MOBILITY
         }
         #undef OTHER
+        #undef ENEMY_PAWN
     }
 
     void calculate_pawn_eval(int ci, int color, int pawndir, int first_rank, int seventh_rank) {
