@@ -285,16 +285,21 @@ struct Board {
             }
             for (int rank = 6; rank > 0; rank--) {
                 int sq = file + first_rank + rank * pawndir;
+                int own_king_dist = max(
+                    abs(sq / 10 - king_sq[ci] / 10),
+                    abs(file - king_sq[ci] % 10)
+                );
+                int enemy_king_dist = max(
+                    abs(sq / 10 - king_sq[!ci] / 10),
+                    abs(file - king_sq[!ci] % 10)
+                );
+                
                 if (board[sq] == own_pawn) {
                     pawn_eval += PASSER_RANK[rank-1]
-                        + PASSER_OWN_KING_DIST[max(
-                            abs(sq / 10 - king_sq[ci] / 10),
-                            abs(sq % 10 - king_sq[ci] % 10)
-                        )]
-                        + PASSER_ENEMY_KING_DIST[max(
-                            abs(sq / 10 - king_sq[!ci] / 10),
-                            abs(sq % 10 - king_sq[!ci] % 10)
-                        )];
+                        + PASSER_OWN_KING_DIST * own_king_dist
+                        + PASSER_OWN_KING_DIST_POW * int(own_king_dist * sqrt(own_king_dist))
+                        + PASSER_ENEMY_KING_DIST * enemy_king_dist
+                        + PASSER_ENEMY_KING_DIST_POW * int(enemy_king_dist * sqrt(enemy_king_dist));
                 }
                 if (board[sq] == opp_pawn || board[sq-1] == opp_pawn || board[sq+1] == opp_pawn) {
                     break;

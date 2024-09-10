@@ -28,8 +28,10 @@ pub struct Features {
     mobility: [f32; 6],
     king_ring_attacks: f32,
     passed_pawn_ranks: [f32; 6],
-    passer_own_king_dist: [f32; 8],
-    passer_enemy_king_dist: [f32; 8],
+    passer_own_king_dist: f32,
+    passer_own_king_dist_pow: f32,
+    passer_enemy_king_dist: f32,
+    passer_enemy_king_dist_pow: f32,
 }
 
 impl Features {
@@ -154,10 +156,16 @@ impl Features {
                     let king = board.king(king_color);
                     let file_dist = (king.file() as u8).abs_diff(square.file() as u8);
                     let rank_dist = (king.rank() as u8).abs_diff(square.rank() as u8);
-                    file_dist.max(rank_dist) as usize
+                    file_dist.max(rank_dist) as f32
                 };
-                self.passer_own_king_dist[king_dist(color)] += inc;
-                self.passer_enemy_king_dist[king_dist(!color)] += inc;
+
+                let own_king_dist = king_dist(color);
+                self.passer_own_king_dist += own_king_dist * inc;
+                self.passer_own_king_dist_pow += own_king_dist.powf(1.5).floor() * inc;
+
+                let enemy_king_dist = king_dist(!color);
+                self.passer_enemy_king_dist += enemy_king_dist * inc;
+                self.passer_enemy_king_dist_pow += enemy_king_dist.powf(1.5).floor() * inc;
             }
         }
 
