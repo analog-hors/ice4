@@ -287,11 +287,11 @@ struct Board {
                 int sq = file + first_rank + rank * pawndir;
                 int own_king_dist = max(
                     abs(sq / 10 - king_sq[ci] / 10),
-                    abs(sq % 10 - king_sq[ci] % 10)
+                    abs(file - king_sq[ci] % 10)
                 );
                 int enemy_king_dist = max(
                     abs(sq / 10 - king_sq[!ci] / 10),
-                    abs(sq % 10 - king_sq[!ci] % 10)
+                    abs(file - king_sq[!ci] % 10)
                 );
                 
                 if (board[sq] == own_pawn) {
