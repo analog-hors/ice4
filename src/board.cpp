@@ -227,23 +227,23 @@ struct Board {
                 int dir = stm == WHITE ? 10 : -10;
                 int promo = board[sq + dir + dir] == INVALID ? QUEEN : 0;
                 if (!board[sq + dir]) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir] * KING_RING_ATTACKS;
+                    mobility += MOBILITY[piece] + KING_RING_ATTACKS[piece] * king_ring[sq + dir];
                     if (quiets || promo || board[sq + dir + dir + dir] == INVALID) {
                         list[count++] = create_move(sq, sq + dir, promo);
                     }
                     if (board[sq - dir - dir] == INVALID && !board[sq + dir + dir]) {
-                        mobility += MOBILITY[piece] + king_ring[sq + dir+dir] * KING_RING_ATTACKS;
+                        mobility += MOBILITY[piece] + KING_RING_ATTACKS[piece] * king_ring[sq + dir+dir];
                         if (quiets) {
                             list[count++] = create_move(sq, sq + dir+dir, promo);
                         }
                     }
                 }
                 if (ep_square == sq + dir-1 || board[sq + dir-1] & OTHER && ~board[sq + dir-1] & stm) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir-1] * KING_RING_ATTACKS;
+                    mobility += MOBILITY[piece] + KING_RING_ATTACKS[piece] * king_ring[sq + dir-1];
                     list[count++] = create_move(sq, sq + dir-1, promo);
                 }
                 if (ep_square == sq + dir+1 || board[sq + dir+1] & OTHER && ~board[sq + dir+1] & stm) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir+1] * KING_RING_ATTACKS;
+                    mobility += MOBILITY[piece] + KING_RING_ATTACKS[piece] * king_ring[sq + dir+1];
                     list[count++] = create_move(sq, sq + dir+1, promo);
                 }
             } else {
@@ -254,7 +254,7 @@ struct Board {
                         if (board[raysq] & stm) {
                             break;
                         }
-                        mobility += MOBILITY[piece] + king_ring[raysq] * KING_RING_ATTACKS;
+                        mobility += MOBILITY[piece] + KING_RING_ATTACKS[piece] * king_ring[raysq];
                         if (board[raysq] & OTHER) {
                             list[count++] = create_move(sq, raysq, 0);
                             break;
