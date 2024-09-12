@@ -25,7 +25,12 @@ pub struct Features {
     shield_pawns: [f32; 4],
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
-    mobility: [f32; 6],
+    pawn_mobility: [f32; 5],
+    knight_mobility: [f32; 9],
+    bishop_mobility: [f32; 14],
+    rook_mobility: [f32; 15],
+    queen_mobility: [f32; 28],
+    king_mobility: [f32; 9],
     king_ring_attacks: f32,
     passed_pawn_ranks: [f32; 6],
     passer_own_king_dist: [f32; 8],
@@ -118,9 +123,19 @@ impl Features {
                     Piece::King => get_king_moves(unflipped_square),
                 };
                 let mob = mob - board.colors(color);
+                
                 self.king_ring_attacks +=
                     inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
-                self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+                
+                let mobility_table: &mut [f32] = match piece {
+                    Piece::Pawn => &mut self.pawn_mobility,
+                    Piece::Knight => &mut self.knight_mobility,
+                    Piece::Bishop => &mut self.bishop_mobility,
+                    Piece::Rook => &mut self.rook_mobility,
+                    Piece::Queen => &mut self.queen_mobility,
+                    Piece::King => &mut self.king_mobility,
+                };
+                mobility_table[mob.len() as usize] += inc;
             }
         }
 

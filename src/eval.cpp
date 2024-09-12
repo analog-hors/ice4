@@ -1,27 +1,32 @@
-// loss: 0.07888    train id: 2024-09-10-22-07-23-frzn-big3
+// loss: 0.07878    train id: 2024-09-12-14-12-14-frzn-big3
 
 #define S(a, b) (a + (b * 0x10000))
 
 int QUADRANTS[] = {
-    S(216, 236), S(229, 241), S(223, 235), S(224, 242),
-    S(235, 306), S(232, 311), S(237, 307), S(234, 310),
-    S(291, 564), S(304, 581), S(298, 556), S(322, 569),
-    S(607, 1103), S(594, 1139), S(610, 1103), S(606, 1150),
+    S(89, 61), S(101, 65), S(96, 59), S(97, 66),
+    S(120, 156), S(118, 161), S(122, 157), S(119, 160),
+    S(163, 290), S(176, 308), S(171, 283), S(195, 295),
+    S(360, 565), S(347, 600), S(364, 565), S(359, 612),
 };
-int PAWN_SHIELD[] = {S(-4, 7), S(4, -17), S(6, -16), S(14, -11)};
-int MOBILITY[] = {0, S(5, 8), S(1, 0), S(3, 5), S(2, 3), S(1, 4), S(-3, 5)};
-int PASSER_RANK[] = {S(-6, -49), S(-13, -32), S(-8, -3), S(4, 30), S(7, 83), S(60, 129)};
+int PAWN_SHIELD[] = {S(-8, 5), S(-1, -15), S(1, -12), S(10, -6)};
+int PAWN_MOBILITY[] = {S(40, 48), S(44, 62), S(50, 63), S(71, 56), S(0, 86)};
+int KNIGHT_MOBILITY[] = {S(121, 152), S(132, 170), S(134, 175), S(136, 179), S(138, 180), S(138, 184), S(138, 183), S(139, 182), S(140, 177)};
+int BISHOP_MOBILITY[] = {S(113, 110), S(122, 136), S(126, 148), S(129, 159), S(133, 171), S(135, 182), S(138, 188), S(139, 193), S(139, 195), S(138, 197), S(141, 194), S(142, 195), S(141, 197), S(139, 190)};
+int ROOK_MOBILITY[] = {S(128, 243), S(134, 262), S(137, 266), S(141, 274), S(140, 283), S(142, 287), S(144, 290), S(147, 292), S(147, 299), S(148, 303), S(149, 305), S(149, 308), S(150, 309), S(151, 309), S(150, 305)};
+int QUEEN_MOBILITY[] = {S(289, 432), S(292, 437), S(294, 466), S(298, 474), S(298, 477), S(299, 497), S(301, 508), S(301, 520), S(302, 530), S(303, 534), S(303, 543), S(302, 551), S(303, 557), S(302, 562), S(302, 571), S(303, 572), S(302, 579), S(299, 588), S(301, 589), S(299, 593), S(306, 591), S(313, 581), S(309, 587), S(317, 578), S(343, 548), S(357, 544), S(353, 536), S(484, 475)};
+int KING_MOBILITY[] = {S(9, -21), S(11, -27), S(9, -26), S(6, -15), S(0, -6), S(-10, 3), S(-14, 8), S(-25, 13), S(-23, 12)};
+int PASSER_RANK[] = {S(-6, -45), S(-11, -28), S(-6, 1), S(7, 33), S(7, 84), S(38, 103)};
 
-#define DATA_STRING L"=VU<982&HTLECA3-FMYVTH80KV``YLE7X_mieRE/ FZR@@>`JIfO&+>K' *WsVb )02+2@>6FHP=;NM\"$ $(30))85.')*7/28? ,32)5/1#&*, ),/..33231,,*%$YZSSX_jbY ZY^`_V!'05)*'+$&..+&&'*/(&$(.,56,%%,16AK4% +9:OTO--125#0, +>;-AMLD:8@4 Lgk]mvzf|p -)*%)++1144*353!#& '''%\"\"&%')('& \",*$)/.=FA7FNT?gZLEGG@? <P[dju"
+#define DATA_STRING L"8PO962- BOG@><.(@HSPNB3*EP[ZSG>2S[{je`N@B4ZmeSSR`IHfO',>J' *PnR` )-1)0><3DFM:8MK#% $'20*)75/&*-9/28? -33*612$(,. )+.-.33132-,,'&[\\TTY`kb[ [Z_`aX$*16+,)- !*,)$##'+$#!%*)34*\"\")/4AK3$ +:;kpjIINOQ#0, *=:,AMMD:8@4 PbhZhmr`rj| )*% %%&*+00#,15\"$' '%%$! #\"%&%$& #0*#(.-:D?4AJTAfZLEFGAA <P[djr"
 
-#define PAWN_OFFSET S(17, 74)
-#define BISHOP_PAIR S(24, 45)
+#define PAWN_OFFSET S(-16, 24)
+#define BISHOP_PAIR S(23, 46)
 #define TEMPO S(11, 13)
-#define ISOLATED_PAWN S(10, 10)
+#define ISOLATED_PAWN S(10, 11)
 #define PROTECTED_PAWN S(7, 8)
-#define ROOK_OPEN S(24, 2)
-#define ROOK_SEMIOPEN S(9, 10)
+#define ROOK_OPEN S(25, 3)
+#define ROOK_SEMIOPEN S(9, 8)
 #define KING_OPEN S(-45, -2)
-#define KING_SEMIOPEN S(-10, 10)
-#define KING_RING_ATTACKS S(13, -5)
-#define DIST_OFFSET S(-114, -62)
+#define KING_SEMIOPEN S(-9, 9)
+#define KING_RING_ATTACKS S(14, -5)
+#define DIST_OFFSET S(-118, -66)

@@ -81,7 +81,12 @@ def to_evalcpp(last_loss, train_id, param_map):
     array_param("PAWN_SHIELD", 4)
     define_param("KING_OPEN")
     define_param("KING_SEMIOPEN")
-    array_param("MOBILITY", 6, leading_zero=True)
+    array_param("PAWN_MOBILITY", 5)
+    array_param("KNIGHT_MOBILITY", 9)
+    array_param("BISHOP_MOBILITY", 14)
+    array_param("ROOK_MOBILITY", 15)
+    array_param("QUEEN_MOBILITY", 28)
+    array_param("KING_MOBILITY", 9)
     define_param("KING_RING_ATTACKS")
     array_param("PASSER_RANK", 6)
 
