@@ -26,7 +26,7 @@ pub struct Features {
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
-    king_ring_attacks: f32,
+    king_ring_attacks: [f32; 4],
     passed_pawn_ranks: [f32; 6],
     passer_own_king_dist: [f32; 8],
     passer_enemy_king_dist: [f32; 8],
@@ -56,6 +56,7 @@ impl Features {
     }
 
     pub fn extract(&mut self, board: &Board) {
+        let mut attacks = [[0; Square::NUM]; Color::NUM];
         for &piece in &Piece::ALL {
             for unflipped_square in board.pieces(piece) {
                 let color = board.color_on(unflipped_square).unwrap();
@@ -118,9 +119,23 @@ impl Features {
                     Piece::King => get_king_moves(unflipped_square),
                 };
                 let mob = mob - board.colors(color);
-                self.king_ring_attacks +=
-                    inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
-                self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+                
+                self.mobility[piece as usize] += inc * mob.len() as f32;
+                for attacked_square in mob {
+                    attacks[color as usize][attacked_square as usize] += 1;
+                }
+            }
+        }
+        for &color in &Color::ALL {
+            let inc = match color {
+                Color::White => 1.0,
+                Color::Black => -1.0,
+            };
+            for square in get_king_moves(board.king(!color)) {
+                let attack_count = attacks[color as usize][square as usize];
+                if attack_count > 0 {
+                    self.king_ring_attacks[attack_count.min(4) as usize - 1] += inc;
+                }
             }
         }
 
