@@ -32,9 +32,19 @@ pub unsafe extern "C" fn decode_data(
             .zip(phases)
             .zip(targets)
             .for_each(|(((board, features), phase), target)| {
-                let (board, _, outcome, _) = board.unpack().unwrap();
+                let (prev, _, outcome, extra) = board.unpack().unwrap();
 
-                features.extract(&board);
+                let mut moves = Vec::new();
+                prev.generate_moves(|packed_moves| {
+                    moves.extend(packed_moves);
+                    false
+                });
+                moves.sort_unstable_by_key(|mv| (mv.from, mv.to, mv.promotion));
+
+                let mut board = prev.clone();
+                board.play(moves[extra as usize]);
+
+                features.extract(&board, &prev);
 
                 *phase = (board.pieces(Piece::Pawn).len() * 0
                     + board.pieces(Piece::Knight).len() * 1

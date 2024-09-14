@@ -55,7 +55,7 @@ impl Features {
         }
     }
 
-    pub fn extract(&mut self, board: &Board) {
+    pub fn extract(&mut self, board: &Board, prev: &Board) {
         for &piece in &Piece::ALL {
             for unflipped_square in board.pieces(piece) {
                 let color = board.color_on(unflipped_square).unwrap();
@@ -102,25 +102,38 @@ impl Features {
                         }] += inc
                     }
                 }
+            }
+        }
 
-                let mob = match piece {
-                    Piece::Pawn => {
-                        get_pawn_quiets(unflipped_square, color, board.occupied())
-                            | (get_pawn_attacks(unflipped_square, color) & board.colors(!color))
-                    }
-                    Piece::Knight => get_knight_moves(unflipped_square),
-                    Piece::Bishop => get_bishop_moves(unflipped_square, board.occupied()),
-                    Piece::Rook => get_rook_moves(unflipped_square, board.occupied()),
-                    Piece::Queen => {
-                        get_bishop_moves(unflipped_square, board.occupied())
-                            | get_rook_moves(unflipped_square, board.occupied())
-                    }
-                    Piece::King => get_king_moves(unflipped_square),
-                };
-                let mob = mob - board.colors(color);
-                self.king_ring_attacks +=
-                    inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
-                self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+        for board in [board, prev] {
+            let color = board.side_to_move();
+            let inc = match color {
+                Color::White => 1.0,
+                Color::Black => -1.0
+            };
+
+            for &piece in &Piece::ALL {
+                for square in board.colored_pieces(color, piece) {
+                    let mob = match piece {
+                        Piece::Pawn => {
+                            get_pawn_quiets(square, color, board.occupied())
+                                | (get_pawn_attacks(square, color) & board.colors(!color))
+                        }
+                        Piece::Knight => get_knight_moves(square),
+                        Piece::Bishop => get_bishop_moves(square, board.occupied()),
+                        Piece::Rook => get_rook_moves(square, board.occupied()),
+                        Piece::Queen => {
+                            get_bishop_moves(square, board.occupied())
+                                | get_rook_moves(square, board.occupied())
+                        }
+                        Piece::King => get_king_moves(square),
+                    };
+                    let mob = mob - board.colors(color);
+
+                    let king_ring = get_king_moves(board.king(!color));
+                    self.king_ring_attacks += inc * (king_ring & mob).len() as f32;
+                    self.mobility[piece as usize] += inc * mob.len() as f32;
+                }
             }
         }
 
