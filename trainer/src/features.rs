@@ -27,6 +27,7 @@ pub struct Features {
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
     king_ring_attacks: f32,
+    king_attacking_pawn: f32,
     passed_pawn_ranks: [f32; 6],
     passer_own_king_dist: [f32; 8],
     passer_enemy_king_dist: [f32; 8],
@@ -118,9 +119,16 @@ impl Features {
                     Piece::King => get_king_moves(unflipped_square),
                 };
                 let mob = mob - board.colors(color);
-                self.king_ring_attacks +=
-                    inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
-                self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+                
+                let enemy_king_ring = get_king_moves(board.king(!color));
+                self.king_ring_attacks += inc * (enemy_king_ring & mob).len() as f32;
+                self.mobility[piece as usize] += inc * mob.len() as f32;
+
+                if piece == Piece::King {
+                    let king_attacks = get_king_moves(unflipped_square);
+                    let enemy_pawns = board.colored_pieces(!color, Piece::Pawn);
+                    self.king_attacking_pawn += inc * (king_attacks & enemy_pawns).len() as f32;
+                }
             }
         }
 
