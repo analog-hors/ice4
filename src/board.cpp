@@ -66,6 +66,18 @@ struct Board {
         } else {
             inc_eval -= PST[board[square]][square-A1];
         }
+        if (board[square] & WHITE && board[square + 9] == BLACK_PAWN) {
+            pawn_eval += PAWN_THREAT;
+        }
+        if (board[square] & WHITE && board[square + 11] == BLACK_PAWN) {
+            pawn_eval += PAWN_THREAT;
+        }
+        if (board[square] & BLACK && board[square - 9] == WHITE_PAWN) {
+            pawn_eval -= PAWN_THREAT;
+        }
+        if (board[square] & BLACK && board[square - 11] == WHITE_PAWN) {
+            pawn_eval -= PAWN_THREAT;
+        }
         phase -= PHASE[board[square] & 7];
         board[square] = piece;
         zobrist ^= ZOBRIST[board[square]][square];
@@ -77,6 +89,18 @@ struct Board {
             pawn_hash ^= ZOBRIST[board[square]][square];
         } else {
             inc_eval += PST[board[square]][square-A1];
+        }
+        if (board[square] & WHITE && board[square + 9] == BLACK_PAWN) {
+            pawn_eval -= PAWN_THREAT;
+        }
+        if (board[square] & WHITE && board[square + 11] == BLACK_PAWN) {
+            pawn_eval -= PAWN_THREAT;
+        }
+        if (board[square] & BLACK && board[square - 9] == WHITE_PAWN) {
+            pawn_eval += PAWN_THREAT;
+        }
+        if (board[square] & BLACK && board[square - 11] == WHITE_PAWN) {
+            pawn_eval += PAWN_THREAT;
         }
         phase += PHASE[board[square] & 7];
         if ((board[square] & 7) == KING) {
@@ -307,6 +331,12 @@ struct Board {
                     // 8.0+0.08: 9.70 +- 4.84 [353, 1319, 1869, 1172, 287] 0.30 elo/byte
                     if (board[sq - pawndir+1] == own_pawn || board[sq - pawndir-1] == own_pawn) {
                         pawn_eval += PROTECTED_PAWN;
+                    }
+                    if (board[sq + pawndir+1] & (color ^ INVALID)) {
+                        pawn_eval += PAWN_THREAT;
+                    }
+                    if (board[sq + pawndir-1] & (color ^ INVALID)) {
+                        pawn_eval += PAWN_THREAT;
                     }
                     if (king_sq[ci] % 10 > 4) {
                         sq = 9 + rank - file;
