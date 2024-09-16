@@ -27,6 +27,7 @@ struct Searcher {
     HTable *conthist_stack[256];
     uint64_t rep_list[256];
     int mobilities[256];
+    int prev_search_score;
 
     int negamax(Board &board, Move &bestmv, int alpha, int beta, int depth, int ply) {
         Move scratch, hashmv{};
@@ -61,7 +62,7 @@ struct Searcher {
 
         board.movegen(moves, mvcount, depth > 0, mobilities[ply+1]);
 
-        evals[ply] = board.eval(mobilities[ply+1] - mobilities[ply] + TEMPO)
+        evals[ply] = board.eval(mobilities[ply+1] - mobilities[ply] + TEMPO, prev_search_score)
             + corr_hist[board.stm != WHITE][board.pawn_hash % CORR_HIST_SIZE] / CORR_HIST_UNIT
             + corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] / CORR_HIST_UNIT
             + (*conthist_stack[ply+1])[0][0] / CORR_HIST_UNIT;
@@ -330,6 +331,7 @@ struct Searcher {
                 int delta = 7;
                 int lower = v;
                 int upper = v;
+                prev_search_score = ROOT.stm == WHITE ? v : -v;
                 while (v <= lower || v >= upper) {
                     lower = lower > v ? v : lower;
                     upper = upper < v ? v : upper;

@@ -324,7 +324,7 @@ struct Board {
         pawn_eval += (king_sq[ci] / 10 == first_rank / 10) * PAWN_SHIELD[shield_pawns];
     }
 
-    int eval(int stm_eval) {
+    int eval(int stm_eval, int prev_search_score) {
         if (pawn_eval_dirty) {
             pawn_eval = 0;
             calculate_pawn_eval(1, BLACK, -10, 90, 30);
@@ -333,9 +333,13 @@ struct Board {
             pawn_eval_dirty = 0;
         }
 
+        int trend_base = clamp(prev_search_score / 2, -32, 32);
+        int trend = trend_base + trend_base / 2 * 0x10000;
+
         // Bishop pair: 29 bytes (v5)
         // 8.0+0.08: 25.79 +- 4.96 [466, 1393, 1806, 1086, 249] 0.89 elo/byte
-        int e = inc_eval + pawn_eval + BISHOP_PAIR * ((piece_counts[WHITE_BISHOP] >= 2) - (piece_counts[BLACK_BISHOP] >= 2));
+        int e = inc_eval + pawn_eval + trend
+            + BISHOP_PAIR * ((piece_counts[WHITE_BISHOP] >= 2) - (piece_counts[BLACK_BISHOP] >= 2));
         // Rook on (semi-)open file: 42 bytes (v5)
         // 8.0+0.08: 9.83 +- 4.84 [344, 1347, 1852, 1166, 293] 0.23 elo/byte
         for (int file = 1; file < 9; file++) {
