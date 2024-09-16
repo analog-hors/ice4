@@ -277,6 +277,12 @@ struct Board {
         if (!piece_file_counts[own_pawn][king_sq[ci] % 10]) {
             pawn_eval += piece_file_counts[opp_pawn][king_sq[ci] % 10] ? KING_SEMIOPEN : KING_OPEN;
         }
+        for (int i = 0; i < 8; i++) {
+            if (board[king_sq[ci] + RAYS[i]] == opp_pawn) {
+                pawn_eval += KING_ATTACKING_PAWN;
+                i = 8;
+            }
+        }
         for (int file = 1; file < 9; file++) {
             // Isolated pawns: 17 bytes (v5)
             // 8.0+0.08: 11.88 +- 4.85 [381, 1311, 1835, 1217, 257] 0.70 elo/byte

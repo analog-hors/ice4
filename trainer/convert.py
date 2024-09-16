@@ -83,6 +83,7 @@ def to_evalcpp(last_loss, train_id, param_map):
     define_param("KING_SEMIOPEN")
     array_param("MOBILITY", 6, leading_zero=True)
     define_param("KING_RING_ATTACKS")
+    define_param("KING_ATTACKING_PAWN")
     array_param("PASSER_RANK", 6)
 
     mg_off = mg_stringer.add([mg.popleft() for _ in range(16)], round_smallest=True)
