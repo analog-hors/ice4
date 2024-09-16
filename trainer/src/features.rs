@@ -26,7 +26,7 @@ pub struct Features {
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
-    king_ring_attacks: f32,
+    king_attack_dist: [f32; 7],
     passed_pawn_ranks: [f32; 6],
     passer_own_king_dist: [f32; 8],
     passer_enemy_king_dist: [f32; 8],
@@ -118,9 +118,13 @@ impl Features {
                     Piece::King => get_king_moves(unflipped_square),
                 };
                 let mob = mob - board.colors(color);
-                self.king_ring_attacks +=
-                    inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
-                self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+                self.mobility[piece as usize] += inc * mob.len() as f32;
+                for square in mob {
+                    let dist = chebyshev_distance(square, board.king(!color));
+                    if dist >= 1 && dist <= 3 {
+                        self.king_attack_dist[dist as usize] += inc;
+                    }
+                }
             }
         }
 
@@ -150,14 +154,10 @@ impl Features {
                 };
                 self.passed_pawn_ranks[rank - 1] += inc;
 
-                let king_dist = |king_color| {
-                    let king = board.king(king_color);
-                    let file_dist = (king.file() as u8).abs_diff(square.file() as u8);
-                    let rank_dist = (king.rank() as u8).abs_diff(square.rank() as u8);
-                    file_dist.max(rank_dist) as usize
-                };
-                self.passer_own_king_dist[king_dist(color)] += inc;
-                self.passer_enemy_king_dist[king_dist(!color)] += inc;
+                let own_king_dist = chebyshev_distance(square, board.king(color));
+                let enemy_king_dist = chebyshev_distance(square, board.king(!color));
+                self.passer_own_king_dist[own_king_dist as usize] += inc;
+                self.passer_enemy_king_dist[enemy_king_dist as usize] += inc;
             }
         }
 
@@ -223,4 +223,10 @@ fn quadrant_feature(square: Square) -> usize {
         false => square,
     };
     square.rank() as usize * 4 + square.file() as usize
+}
+
+fn chebyshev_distance(sq1: Square, sq2: Square) -> u8 {
+    let file_dist = (sq1.file() as u8).abs_diff(sq2.file() as u8);
+    let rank_dist = (sq1.rank() as u8).abs_diff(sq2.rank() as u8);
+    file_dist.max(rank_dist)
 }
