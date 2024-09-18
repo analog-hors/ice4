@@ -306,7 +306,7 @@ struct Board {
                     // Protected pawn: 32 bytes (v5)
                     // 8.0+0.08: 9.70 +- 4.84 [353, 1319, 1869, 1172, 287] 0.30 elo/byte
                     if (board[sq - pawndir+1] == own_pawn || board[sq - pawndir-1] == own_pawn) {
-                        pawn_eval += PROTECTED_PAWN;
+                        pawn_eval += PROTECTED_PAWN[rank - 2];
                     }
                     if (king_sq[ci] % 10 > 4) {
                         sq += 9 - file - file;

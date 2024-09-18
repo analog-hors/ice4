@@ -19,7 +19,7 @@ pub struct Features {
     bishop_pair: f32,
     tempo: f32,
     isolated_pawn: f32,
-    protected_pawn: f32,
+    protected_pawn: [f32; 5],
     rook_on_open_file: f32,
     rook_on_semiopen_file: f32,
     shield_pawns: [f32; 4],
@@ -179,7 +179,7 @@ impl Features {
                     self.isolated_pawn += inc;
                 }
                 if !get_pawn_attacks(sq, !color).is_disjoint(own_pawns) {
-                    self.protected_pawn += inc;
+                    self.protected_pawn[sq.rank().relative_to(color) as usize - 2] += inc;
                 }
             }
 
