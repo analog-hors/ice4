@@ -218,7 +218,7 @@ struct Searcher {
                 // Base LMR: 10 bytes (v4)
                 // 8.0+0.08: 80.97 +- 5.10     8.10 elo/byte
                 // 60.0+0.6: 83.09 +- 4.65     8.31 elo/byte
-                int reduction = legals * 0.155 + depth * 0.165;
+                int reduction = legals * 0.155 + depth * 0.180;
                 reduction += hashmv.from && board.board[hashmv.to];
                 reduction -= (board.board[moves[i].from] & 7) == PAWN && (
                     (RIGHT_PAWN_THREAT & INVALID) == mkmove.stm
