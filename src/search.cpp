@@ -166,9 +166,10 @@ struct Searcher {
             // Pawn Protected Pruning: 61 bytes (v4)
             // 8.0+0.08: 34.43 +- 3.02     0.56 elo/byte
             // 60.0+0.6: 22.55 +- 2.66     0.37 elo/byte
-            int pawn_attacked =
-                board.board[moves[i].to + (board.stm & WHITE ? 11 : -11)] == ((board.stm ^ INVALID) | PAWN) ||
-                board.board[moves[i].to + (board.stm & WHITE ? 9 : -9)] == ((board.stm ^ INVALID) | PAWN);
+            #define RIGHT_PAWN_THREAT (board.board[moves[i].to + (board.stm & WHITE ? 11 : -11)])
+            #define LEFT_PAWN_THREAT (board.board[moves[i].to + (board.stm & WHITE ? 9 : -9)])
+            int pawn_attacked = RIGHT_PAWN_THREAT == ((board.stm ^ INVALID) | PAWN)
+                || LEFT_PAWN_THREAT == ((board.stm ^ INVALID) | PAWN);
             if (ply && pawn_attacked && (board.board[moves[i].from] & 7) > victim + max(0, depth) / 2) {
                 continue;
             }
@@ -219,6 +220,10 @@ struct Searcher {
                 // 60.0+0.6: 83.09 +- 4.65     8.31 elo/byte
                 int reduction = legals * 0.155 + depth * 0.165;
                 reduction += hashmv.from && board.board[hashmv.to];
+                reduction -= (board.board[moves[i].from] & 7) == PAWN && (
+                    (RIGHT_PAWN_THREAT & INVALID) == mkmove.stm
+                        || (LEFT_PAWN_THREAT & INVALID) == mkmove.stm
+                );
                 // History reduction: 9 bytes (v4)
                 // 8.0+0.08: 26.28 +- 2.98     2.92 elo/byte
                 // 60.0+0.6: 37.09 +- 2.65     4.12 elo/byte
@@ -272,6 +277,9 @@ struct Searcher {
                 }
                 break;
             }
+
+            #undef RIGHT_PAWN_THREAT
+            #undef LEFT_PAWN_THREAT
         }
 
         if (depth > 0 && legals == 0 && !board.check) {
