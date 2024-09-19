@@ -33,6 +33,12 @@ pub struct LinearFeatures {
     phalanx_pawn_rank: [f32; 6],
 }
 
+#[derive(Debug)]
+#[repr(C)]
+pub struct KingSafetyFeatures {
+    _dummy: f32,
+}
+
 impl LinearFeatures {
     pub const COUNT: usize = std::mem::size_of::<Self>() / std::mem::size_of::<f32>();
 
@@ -57,7 +63,11 @@ impl LinearFeatures {
     }
 }
 
-pub fn extract_features(board: &Board, linear: &mut LinearFeatures, phase: &mut f32) {
+impl KingSafetyFeatures {
+    pub const COUNT: usize = std::mem::size_of::<Self>() / std::mem::size_of::<f32>();
+}
+
+pub fn extract_features(board: &Board, linear: &mut LinearFeatures, king_safety: &mut KingSafetyFeatures, phase: &mut f32) {
     for &piece in &Piece::ALL {
         for unflipped_square in board.pieces(piece) {
             let color = board.color_on(unflipped_square).unwrap();

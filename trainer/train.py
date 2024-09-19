@@ -9,9 +9,13 @@ subprocess.run(["cargo", "build", "--release", "-p", "trainer"])
 
 PARSELIB = ctypes.cdll.LoadLibrary("../target/release/libtrainer.so")
 
-PARSELIB.feature_count.argtypes = []
-PARSELIB.feature_count.restype = ctypes.c_ulong
-FEATURE_COUNT: int = PARSELIB.feature_count()
+PARSELIB.linear_feature_count.argtypes = []
+PARSELIB.linear_feature_count.restype = ctypes.c_ulong
+LINEAR_FEATURE_COUNT = int(PARSELIB.linear_feature_count())
+
+PARSELIB.king_safety_feature_count.argtypes = []
+PARSELIB.king_safety_feature_count.restype = ctypes.c_ulong
+KING_SAFETY_FEATURE_COUNT = int(PARSELIB.king_safety_feature_count())
 
 # PARSELIB.decode_data.argtypes = [
 #     ctypes.POINTER(ctypes.c_ubyte),
@@ -29,35 +33,39 @@ def batch_loader():
             if batch_size == 0:
                 return
 
-            features = numpy.zeros((batch_size, FEATURE_COUNT), dtype=ctypes.c_float)
-            phases = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
-            targets = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
-            features_c_array = numpy.ctypeslib.as_ctypes(features)
-            phases_c_array = numpy.ctypeslib.as_ctypes(phases)
-            targets_c_array = numpy.ctypeslib.as_ctypes(targets)
+            linear = numpy.zeros((batch_size, LINEAR_FEATURE_COUNT), dtype=ctypes.c_float)
+            king_safety = numpy.zeros((batch_size, KING_SAFETY_FEATURE_COUNT), dtype=ctypes.c_float)
+            phase = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
+            target = numpy.zeros((batch_size, 1), dtype=ctypes.c_float)
 
             result = PARSELIB.decode_data(
                 data,
-                features_c_array,
-                phases_c_array,
-                targets_c_array,
+                numpy.ctypeslib.as_ctypes(linear),
+                numpy.ctypeslib.as_ctypes(king_safety),
+                numpy.ctypeslib.as_ctypes(phase),
+                numpy.ctypeslib.as_ctypes(target),
                 batch_size
             )
             assert result
 
-            yield torch.from_numpy(features), torch.from_numpy(phases), torch.from_numpy(targets)
+            yield (
+                torch.from_numpy(linear),
+                torch.from_numpy(king_safety),
+                torch.from_numpy(phase),
+                torch.from_numpy(target),
+            )
 
 class Model(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.mg = torch.nn.Linear(FEATURE_COUNT, 1, bias=False)
+        self.mg = torch.nn.Linear(LINEAR_FEATURE_COUNT, 1, bias=False)
         torch.nn.init.zeros_(self.mg.weight)
-        self.eg = torch.nn.Linear(FEATURE_COUNT, 1, bias=False)
+        self.eg = torch.nn.Linear(LINEAR_FEATURE_COUNT, 1, bias=False)
         torch.nn.init.zeros_(self.eg.weight)
 
-    def forward(self, features, phase):
-        mg = self.mg(features)
-        eg = self.eg(features)
+    def forward(self, linear: torch.Tensor, king_safety: torch.Tensor, phase: torch.Tensor):
+        mg = self.mg(linear)
+        eg = self.eg(linear)
 
         score = torch.lerp(eg, mg, phase)
 
@@ -69,6 +77,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 print(train_id)
 
+loss = 0
 for epoch in range(15):
     if epoch in [8, 12]:
         optimizer.param_groups[0]["lr"] /= 10
@@ -77,16 +86,16 @@ for epoch in range(15):
     running_loss = 0
     poses = 0
     start = time()
-    for features, phases, targets in batch_loader():
+    for linear, king_safety, phase, target in batch_loader():
         optimizer.zero_grad()
-        outputs = model(features, phases)
-        loss = torch.mean(torch.abs(outputs - targets) ** 2.6)
+        output = model(linear, king_safety, phase)
+        loss = torch.mean(torch.abs(output - target) ** 2.6)
         loss.backward()
         optimizer.step()
 
         running_loss += loss.item()
         iters += 1
-        poses += features.shape[0]
+        poses += target.shape[0]
 
     loss = running_loss / iters
     print(f"epoch {epoch+1: 2}:    loss {loss:.4g}    pos/s {round(poses / (time() - start))}")
