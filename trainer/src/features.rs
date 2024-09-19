@@ -26,7 +26,6 @@ pub struct LinearFeatures {
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
-    king_ring_attacks: f32,
     passed_pawn_ranks: [f32; 6],
     passer_own_king_dist: [f32; 8],
     passer_enemy_king_dist: [f32; 8],
@@ -36,7 +35,7 @@ pub struct LinearFeatures {
 #[derive(Debug)]
 #[repr(C)]
 pub struct KingSafetyFeatures {
-    _dummy: f32,
+    king_attack_weight: [[f32; 5]; Color::NUM],
 }
 
 impl LinearFeatures {
@@ -130,9 +129,12 @@ pub fn extract_features(board: &Board, linear: &mut LinearFeatures, king_safety:
                 Piece::King => get_king_moves(unflipped_square),
             };
             let mob = mob - board.colors(color);
-            linear.king_ring_attacks +=
-                inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
             linear.mobility[piece as usize] += inc * mob.len() as f32;
+
+            let king_ring_attacks = (get_king_moves(board.king(!color)) & mob).len();
+            if piece != Piece::King && king_ring_attacks > 0 {
+                king_safety.king_attack_weight[color as usize][piece as usize] += king_ring_attacks as f32;
+            }
         }
     }
 
