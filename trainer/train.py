@@ -80,7 +80,7 @@ for epoch in range(15):
     for features, phases, targets in batch_loader():
         optimizer.zero_grad()
         outputs = model(features, phases)
-        loss = torch.mean(torch.abs(outputs - targets) ** 2.6)
+        loss = torch.mean(torch.abs(outputs - targets) ** 2)
         loss.backward()
         optimizer.step()
 
