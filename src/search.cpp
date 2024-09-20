@@ -170,6 +170,7 @@ struct Searcher {
                 board.board[moves[i].to + (board.stm & WHITE ? 11 : -11)] == ((board.stm ^ INVALID) | PAWN) ||
                 board.board[moves[i].to + (board.stm & WHITE ? 9 : -9)] == ((board.stm ^ INVALID) | PAWN);
             if (ply && pawn_attacked && (board.board[moves[i].from] & 7) > victim + max(0, depth) / 2) {
+                moves[i].to = 0;
                 continue;
             }
 
@@ -184,11 +185,13 @@ struct Searcher {
             // 8.0+0.08: 25.73 +- 2.98     0.70 elo/byte
             // 60.0+0.6: 22.45 +- 2.62     0.61 elo/byte
             if (depth <= 0 && eval + DELTAS[victim] <= alpha) {
+                moves[i].to = 0;
                 continue;
             }
 
             Board mkmove = board;
             if (mkmove.make_move(moves[i])) {
+                moves[i].to = 0;
                 continue;
             }
 
