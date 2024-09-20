@@ -22,6 +22,7 @@ struct Searcher {
     double abort_time;
     int16_t evals[256];
     int64_t corr_hist[2][CORR_HIST_SIZE];
+    int64_t king_attack_corr_hist[2][4096];
     HTable history;
     HTable conthist[14][SQUARE_SPAN];
     HTable *conthist_stack[256];
@@ -59,11 +60,13 @@ struct Searcher {
             depth--;
         }
 
-        board.movegen(moves, mvcount, depth > 0, mobilities[ply+1]);
+        uint64_t king_attack_hash;
+        board.movegen(moves, mvcount, depth > 0, mobilities[ply+1], king_attack_hash);
 
         evals[ply] = board.eval(mobilities[ply+1] - mobilities[ply] + TEMPO)
             + corr_hist[board.stm != WHITE][board.pawn_hash % CORR_HIST_SIZE] / CORR_HIST_UNIT
             + corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] / CORR_HIST_UNIT
+            + king_attack_corr_hist[board.stm != WHITE][king_attack_hash % 4096] / CORR_HIST_UNIT
             + (*conthist_stack[ply+1])[0][0] / CORR_HIST_UNIT;
         int eval = tt_good && tt.eval < 20000 && tt.eval > -20000 ? tt.eval : evals[ply];
         // Improving (only used for LMP): 30 bytes (98fcc8a vs b5fdb00)
@@ -299,6 +302,9 @@ struct Searcher {
                     clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
                 corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] =
                     corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] * (1 - weight) +
+                    clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
+                king_attack_corr_hist[board.stm != WHITE][king_attack_hash % 4096] =
+                    king_attack_corr_hist[board.stm != WHITE][king_attack_hash % 4096] * (1 - weight) +
                     clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
                 (*conthist_stack[ply+1])[0][0] =
                     (*conthist_stack[ply+1])[0][0] * (1 - weight) +
