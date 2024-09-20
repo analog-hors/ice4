@@ -59,11 +59,13 @@ struct Searcher {
             depth--;
         }
 
-        board.movegen(moves, mvcount, depth > 0, mobilities[ply+1]);
+        uint64_t slider_mobility_hash;
+        board.movegen(moves, mvcount, depth > 0, mobilities[ply+1], slider_mobility_hash);
 
         evals[ply] = board.eval(mobilities[ply+1] - mobilities[ply] + TEMPO)
             + corr_hist[board.stm != WHITE][board.pawn_hash % CORR_HIST_SIZE] / CORR_HIST_UNIT
             + corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] / CORR_HIST_UNIT
+            + corr_hist[board.stm != WHITE][slider_mobility_hash % CORR_HIST_SIZE] / CORR_HIST_UNIT
             + (*conthist_stack[ply+1])[0][0] / CORR_HIST_UNIT;
         int eval = tt_good && tt.eval < 20000 && tt.eval > -20000 ? tt.eval : evals[ply];
         // Improving (only used for LMP): 30 bytes (98fcc8a vs b5fdb00)
@@ -299,6 +301,9 @@ struct Searcher {
                     clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
                 corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] =
                     corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] * (1 - weight) +
+                    clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
+                corr_hist[board.stm != WHITE][slider_mobility_hash % CORR_HIST_SIZE] =
+                    corr_hist[board.stm != WHITE][slider_mobility_hash % CORR_HIST_SIZE] * (1 - weight) +
                     clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
                 (*conthist_stack[ply+1])[0][0] =
                     (*conthist_stack[ply+1])[0][0] * (1 - weight) +

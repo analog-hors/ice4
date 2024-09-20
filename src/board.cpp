@@ -192,7 +192,7 @@ struct Board {
         #undef NSTM
     }
 
-    void movegen(Move list[], int& count, int quiets, int& mobility) {
+    void movegen(Move list[], int& count, int quiets, int& mobility, uint64_t& slider_mobility_hash) {
         // King ring attacks: 30 bytes (v5)
         // 8.0+0.08: 7.47 +- 4.89 [382, 1239, 1891, 1190, 299] 0.25 elo/byte
         // Mobility: 26 bytes (v5)
@@ -201,6 +201,7 @@ struct Board {
         #define OTHER (stm ^ INVALID)
         count = 0;
         mobility = 0;
+        slider_mobility_hash = 0;
         for (int i = 0; i < 8; i++) {
             king_ring[king_sq[stm == WHITE] + RAYS[i]] = KING_RING_ATTACKS;
         }
@@ -255,6 +256,7 @@ struct Board {
                             break;
                         }
                         mobility += MOBILITY[piece] + king_ring[raysq];
+                        king_ring[piece]++;
                         if (board[raysq] & OTHER) {
                             list[count++] = create_move(sq, raysq, 0);
                             break;
@@ -265,6 +267,9 @@ struct Board {
                 }
             }
         }
+        slider_mobility_hash ^= ZOBRIST[BISHOP][king_ring[BISHOP] / 4];
+        slider_mobility_hash ^= ZOBRIST[ROOK][king_ring[ROOK] / 4];
+        slider_mobility_hash ^= ZOBRIST[QUEEN][king_ring[QUEEN] / 4];
         #undef OTHER
     }
 
