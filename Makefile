@@ -21,7 +21,13 @@ ice4.exe: $(DEPS)
 	x86_64-w64-mingw32-g++ -Wl,--stack,16777216 -DOPENBENCH -O3 -pthread -static src/main.cpp -o "$@"
 
 $(EXE): $(DEPS)
-	g++ -DOPENBENCH -g -O3 -pthread src/main.cpp -o "$@"
+	g++ -DOPENBENCH -g -O3 -pthread src/main.cpp -o temp
+	echo "#!/usr/bin/env python3" > "$@"
+	printf "EXECUTABLE='" >> "$@"
+	base64 temp -w 0 >> "$@"
+	echo "'" >> "$@"
+	cat shim.py >> "$@"
+	chmod +x "$@"
 
 ice4-min-ob: $(DEPS)
 	cargo run --release openbench | g++ -O3 -pthread -xc++ -o "$@" -
