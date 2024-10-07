@@ -30,7 +30,9 @@ struct Searcher {
     uint64_t rep_list[256];
     int mobilities[256];
 
-    int negamax(Board &board, Move &bestmv, int alpha, int beta, int depth, int ply) {
+    int negamax(Board &board, Move &bestmv, int alpha, int beta, int signed_depth, int ply) {
+        int depth = signed_depth > 0 ? signed_depth : 0;
+
         Move scratch, hashmv{};
         Move moves[256];
         int score[256];
@@ -58,6 +60,7 @@ struct Searcher {
             // Internal Iterative Reductions: 6 bytes (v4)
             // 8.0+0.08: 36.52 +- 3.00    6.09 elo/byte
             // 60.0+0.6: 40.34 +- 2.64    6.72 elo/byte
+            signed_depth--;
             depth--;
         }
 
@@ -147,7 +150,7 @@ struct Searcher {
             return best;
         }
 
-        int quiets_to_check = pv ? -1 : (depth*depth + 11) >> (!improving + 1);
+        int quiets_to_check = pv ? -1 : (signed_depth*signed_depth + 11) >> (!improving + 1);
 
         int raised_alpha = 0;
         int legals = 0;
@@ -206,7 +209,7 @@ struct Searcher {
             }
 
             int v;
-            int next_depth = depth - 1 + mkmove.check;
+            int next_depth = signed_depth - 1 + mkmove.check;
 
             if (is_rep) {
                 v = 0;
@@ -251,7 +254,7 @@ struct Searcher {
             }
             if (v >= beta) {
                 if (!victim) {
-                    int bonus = 5.6 * depth * depth + 0.5 * depth;
+                    int bonus = 5.6 * signed_depth * signed_depth + 0.5 * signed_depth;
                     bonus <<= ((eval <= alpha) + (eval <= alpha - 34));
                     int16_t *hist;
                     for (int j = 0; j < i; j++) {
@@ -295,7 +298,7 @@ struct Searcher {
                 tt.bound == BOUND_UPPER && best < evals[ply] ||
                 tt.bound == BOUND_LOWER && best > evals[ply]
             )) {
-                double weight = min(depth * depth, 92) / 625.0;
+                double weight = min(signed_depth * signed_depth, 92) / 625.0;
                 corr_hist[board.stm != WHITE][board.pawn_hash % CORR_HIST_SIZE] =
                     corr_hist[board.stm != WHITE][board.pawn_hash % CORR_HIST_SIZE] * (1 - weight) +
                     clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
