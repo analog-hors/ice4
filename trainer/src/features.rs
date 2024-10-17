@@ -32,6 +32,7 @@ pub struct Features {
     passer_own_king_dist: [f32; 8],
     passer_enemy_king_dist: [f32; 8],
     phalanx_pawn_rank: [f32; 6],
+    rook_on_seventh: f32,
 }
 
 impl Features {
@@ -74,6 +75,11 @@ impl Features {
                         self.rook_on_open_file += inc;
                     } else if board.colored_pieces(color, Piece::Pawn).is_disjoint(file) {
                         self.rook_on_semiopen_file += inc;
+                    }
+
+                    let enemy_king_rank = board.king(!color).rank().relative_to(color);
+                    if square.rank() == Rank::Seventh && enemy_king_rank >= Rank::Seventh {
+                        self.rook_on_seventh += inc;
                     }
                 }
 

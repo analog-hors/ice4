@@ -355,6 +355,12 @@ struct Board {
                 e -= (piece_file_counts[WHITE_PAWN][file] ? ROOK_SEMIOPEN : ROOK_OPEN)
                     * piece_file_counts[BLACK_ROOK][file];
             }
+            if (board[80 + file] == WHITE_ROOK && king_sq[1] >= A7) {
+                e += ROOK_ON_SEVENTH;
+            }
+            if (board[30 + file] == BLACK_ROOK && king_sq[0] <= H2) {
+                e -= ROOK_ON_SEVENTH;
+            }
         }
         stm_eval += stm == WHITE ? e : -e;
         return ((int16_t)stm_eval * phase + ((stm_eval + 0x8000) >> 16) * (24 - phase)) / 24;
