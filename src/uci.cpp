@@ -12,15 +12,29 @@ void uci() {
 
     string token;
     getline(cin, token);
-    printf(
+
 #ifdef OPENBENCH
+    printf(
         "id name ice4 v5\r\n"
         "id author MinusKelvin\n"
         "option name Hash type spin default 8 min 1 max 99999\n"
         "option name Threads type spin default 1 min 1 max 999\n"
-#endif
-        "uciok\n"
     );
+
+#ifdef TUNABLE
+    for (auto& [name, variant] : tunableParams) {
+        if (auto value = get_if<int*>(&variant)) {
+            printf("option name %s type string default %d\n", name.c_str(), **value);
+        }
+        if (auto value = get_if<float*>(&variant)) {
+            printf("option name %s type string default %.17g\n", name.c_str(), **value);
+        }
+    }
+#endif
+
+#endif
+
+    printf("uciok\n");
     while (getline(cin, token)) {
         stringstream tokens(token);
         tokens >> token;
@@ -46,7 +60,18 @@ void uci() {
                 }
                 if (token == "Threads") {
                     tokens >> token >> THREADS; // value <value>
+                } 
+#ifdef TUNABLE
+                if (tunableParams.count(token)) {
+                    auto& variant = tunableParams[token];
+                    if (auto value = get_if<int*>(&variant)) {
+                        tokens >> token >> **value; // value <value>
+                    }
+                    if (auto value = get_if<float*>(&variant)) {
+                        tokens >> token >> **value; // value <value>
+                    }
                 }
+#endif
                 break;
 #endif
             case 'p': // position
