@@ -28,6 +28,7 @@ struct Searcher {
     HTable *conthist_stack[256];
     uint64_t rep_list[256];
     int mobilities[256];
+    uint8_t defenders[256][120];
 
     int negamax(Board &board, Move &bestmv, int alpha, int beta, int depth, int ply) {
         if (depth < 0) {
@@ -64,7 +65,7 @@ struct Searcher {
             depth -= 2;
         }
 
-        board.movegen(moves, mvcount, depth, mobilities[ply+1]);
+        board.movegen(moves, mvcount, depth, mobilities[ply+1], defenders[ply+1]);
 
         evals[ply] = board.eval(mobilities[ply+1] - mobilities[ply] + TEMPO)
             + corr_hist[board.stm != WHITE][board.pawn_hash % CORR_HIST_SIZE] / 178
@@ -118,12 +119,16 @@ struct Searcher {
 
         for (int j = 0; j < mvcount; j++) {
             if (hashmv.from == moves[j].from && hashmv.to == moves[j].to) {
-                score[j] = 1e7;
+                score[j] = 1e9;
             } else if (board.board[moves[j].to]) {
                 // MVV-LVA capture ordering: 3 bytes (78a3963 vs 35f9b66)
                 // 8.0+0.08: 289.03 +- 7.40 (7378 - 563 - 2059) 96.34 elo/byte
                 // 60.0+0.6: 237.53 +- 6.10 (6384 - 445 - 3171) 79.18 elo/byte
                 score[j] = board.board[moves[j].to] * 1e5 - board.board[moves[j].from];
+                if (board.board[moves[j].to] >= board.board[moves[j].from]
+                    || defenders[ply+1][moves[j].to] >= defenders[ply][moves[j].to]) {
+                    score[j] += 1e7;
+                }
             } else {
                 // Plain history: 28 bytes (676e7fa vs 4cabdf1)
                 // 8.0+0.08: 51.98 +- 5.13 (3566 - 2081 - 4353) 1.86 elo/byte
