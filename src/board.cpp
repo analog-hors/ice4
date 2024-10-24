@@ -269,12 +269,12 @@ struct Board {
                     int raysq = sq;
                     for (int j = 0; j < LIMITS[piece]; j++) {
                         raysq += RAYS[i];
+                        #define TARGET raysq
+                        APPLY_DEFENDED;
                         if (board[raysq] & stm) {
                             break;
                         }
-                        #define TARGET raysq
                         APPLY_MOBILITY;
-                        APPLY_DEFENDED;
                         #undef TARGET
                         if (board[raysq] & OTHER) {
                             list[count++] = create_move(sq, raysq, 0);
