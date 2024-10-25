@@ -68,16 +68,16 @@ struct Board {
             inc_eval -= PST[board[square]][square-A1];
         }
         if (board[square] & WHITE && board[square + 9] == BLACK_PAWN) {
-            pawn_eval += PAWN_THREAT;
+            pawn_eval += PAWN_THREAT[board[square] & 7];
         }
         if (board[square] & WHITE && board[square + 11] == BLACK_PAWN) {
-            pawn_eval += PAWN_THREAT;
+            pawn_eval += PAWN_THREAT[board[square] & 7];
         }
         if (board[square] & BLACK && board[square - 9] == WHITE_PAWN) {
-            pawn_eval -= PAWN_THREAT;
+            pawn_eval -= PAWN_THREAT[board[square] & 7];
         }
         if (board[square] & BLACK && board[square - 11] == WHITE_PAWN) {
-            pawn_eval -= PAWN_THREAT;
+            pawn_eval -= PAWN_THREAT[board[square] & 7];
         }
         phase -= PHASE[board[square] & 7];
         board[square] = piece;
@@ -92,16 +92,16 @@ struct Board {
             inc_eval += PST[board[square]][square-A1];
         }
         if (board[square] & WHITE && board[square + 9] == BLACK_PAWN) {
-            pawn_eval -= PAWN_THREAT;
+            pawn_eval -= PAWN_THREAT[board[square] & 7];
         }
         if (board[square] & WHITE && board[square + 11] == BLACK_PAWN) {
-            pawn_eval -= PAWN_THREAT;
+            pawn_eval -= PAWN_THREAT[board[square] & 7];
         }
         if (board[square] & BLACK && board[square - 9] == WHITE_PAWN) {
-            pawn_eval += PAWN_THREAT;
+            pawn_eval += PAWN_THREAT[board[square] & 7];
         }
         if (board[square] & BLACK && board[square - 11] == WHITE_PAWN) {
-            pawn_eval += PAWN_THREAT;
+            pawn_eval += PAWN_THREAT[board[square] & 7];
         }
         phase += PHASE[board[square] & 7];
         if ((board[square] & 7) == KING) {
@@ -339,10 +339,10 @@ struct Board {
                         pawn_eval += get_data(PHALANX_RANK_INDEX + rank) + PHALANX_RANK;
                     }
                     if ((board[sq + pawndir+1] & INVALID ^ INVALID) == color) {
-                        pawn_eval += PAWN_THREAT;
+                        pawn_eval += PAWN_THREAT[board[sq + pawndir+1] & 7];
                     }
                     if ((board[sq + pawndir-1] & INVALID ^ INVALID) == color) {
-                        pawn_eval += PAWN_THREAT;
+                        pawn_eval += PAWN_THREAT[board[sq + pawndir-1] & 7];
                     }
                     if (king_sq[ci] % 10 > 4) {
                         sq += 9 - file - file;

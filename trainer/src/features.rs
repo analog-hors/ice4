@@ -21,7 +21,7 @@ pub struct Features {
     tempo: f32,
     isolated_pawn: f32,
     protected_pawn: f32,
-    pawn_threat: f32,
+    pawn_threat: [f32; 6],
     rook_on_open_file: f32,
     rook_on_semiopen_file: f32,
     shield_pawns: [f32; 4],
@@ -190,8 +190,10 @@ impl Features {
                     self.phalanx_pawn_rank[sq.rank().relative_to(color) as usize - 1] += inc;
                 }
                 
-                let threats = get_pawn_attacks(sq, color) & board.colors(!color);
-                self.pawn_threat += inc * threats.len() as f32;
+                for threatened in get_pawn_attacks(sq, color) & board.colors(!color) {
+                    let piece = board.piece_on(threatened).unwrap();
+                    self.pawn_threat[piece as usize] += inc;
+                }
             }
 
             let king = board.king(color);
