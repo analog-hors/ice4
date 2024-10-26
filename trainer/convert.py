@@ -75,6 +75,7 @@ def to_evalcpp(last_loss, train_id, param_map):
         print(f", S({mg_off}, {eg_off})", end="")
     print("};")
 
+    array_param("ENEMY_KING_HALF_PAWN_RANK", 6)
     define_param("BISHOP_PAIR")
     define_param("TEMPO")
     define_param("ISOLATED_PAWN", sign=-1)

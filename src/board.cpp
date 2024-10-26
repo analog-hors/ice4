@@ -314,6 +314,9 @@ struct Board {
                     if (board[sq - 1] == own_pawn) {
                         pawn_eval += get_data(PHALANX_RANK_INDEX + rank) + PHALANX_RANK;
                     }
+                    if ((king_sq[!ci] % 10 > 4) == (file > 4)) {
+                        pawn_eval += ENEMY_KING_HALF_PAWN_RANK[rank - 1];
+                    }
                     if (king_sq[ci] % 10 > 4) {
                         sq += 9 - file - file;
                     }

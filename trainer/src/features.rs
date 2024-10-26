@@ -17,6 +17,7 @@ pub struct Features {
     queen_file: [f32; 8],
     king_rank: [f32; 8],
     king_file: [f32; 8],
+    enemy_king_half_pawn_rank: [f32; 6],
     bishop_pair: f32,
     tempo: f32,
     isolated_pawn: f32,
@@ -95,7 +96,11 @@ impl Features {
                         self.pawn_pst[match board.king(color).file() > File::D {
                             true => square.flip_file() as usize - 8,
                             false => square as usize - 8,
-                        }] += inc
+                        }] += inc;
+
+                        if (square.file() > File::D) == (board.king(!color).file() > File::D) {
+                            self.enemy_king_half_pawn_rank[square.rank() as usize - 1] += inc;
+                        }
                     }
                 }
 
