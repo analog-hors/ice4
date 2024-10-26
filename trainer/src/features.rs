@@ -1,6 +1,6 @@
 use cozy_chess::{
     get_bishop_moves, get_king_moves, get_knight_moves, get_pawn_attacks, get_pawn_quiets,
-    get_rook_moves, BitBoard, Board, Color, File, Piece, Rank,
+    get_rook_moves, Board, Color, File, Piece, Rank,
 };
 
 #[derive(Debug)]
@@ -21,6 +21,7 @@ pub struct Features {
     tempo: f32,
     isolated_pawn: f32,
     protected_pawn: f32,
+    threatened_by_pawn: f32,
     rook_on_open_file: f32,
     rook_on_semiopen_file: f32,
     shield_pawns: [f32; 4],
@@ -117,6 +118,13 @@ impl Features {
                 self.king_ring_attacks +=
                     inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
                 self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+
+                if piece != Piece::Pawn {
+                    let enemy_pawns = board.colored_pieces(!color, Piece::Pawn);
+                    if !get_pawn_attacks(unflipped_square, color).is_disjoint(enemy_pawns) {
+                        self.threatened_by_pawn += inc;
+                    }
+                }
             }
         }
 
@@ -163,16 +171,6 @@ impl Features {
             }
         }
 
-        let pawns = board.colored_pieces(Color::White, Piece::Pawn);
-        let pawn_attacks_right = BitBoard((pawns & !File::A.bitboard()).0 << 7);
-        let pawn_attacks_left = BitBoard((pawns & !File::H.bitboard()).0 << 9);
-        self.protected_pawn += ((pawn_attacks_left | pawn_attacks_right) & pawns).len() as f32;
-
-        let pawns = board.colored_pieces(Color::Black, Piece::Pawn);
-        let pawn_attacks_right = BitBoard((pawns & !File::A.bitboard()).0 >> 9);
-        let pawn_attacks_left = BitBoard((pawns & !File::H.bitboard()).0 >> 7);
-        self.protected_pawn -= ((pawn_attacks_left | pawn_attacks_right) & pawns).len() as f32;
-
         for color in Color::ALL {
             let inc = match color {
                 Color::White => 1.0,
@@ -185,21 +183,19 @@ impl Features {
                 self.tempo += inc;
             }
 
-            for sq in board.colored_pieces(color, Piece::Pawn) {
-                if sq
-                    .file()
-                    .adjacent()
-                    .is_disjoint(board.colored_pieces(color, Piece::Pawn))
-                {
+            let own_pawns = board.colored_pieces(color, Piece::Pawn);
+            for sq in own_pawns {
+                if sq.file().adjacent().is_disjoint(own_pawns) {
                     self.isolated_pawn += inc;
                 }
-            }
 
-            let phalanx_pawns = BitBoard(board.colored_pieces(color, Piece::Pawn).0 << 1)
-                & board.colored_pieces(color, Piece::Pawn)
-                & !File::A.bitboard();
-            for phalanx in phalanx_pawns {
-                self.phalanx_pawn_rank[phalanx.rank().relative_to(color) as usize - 1] += inc;
+                if !get_pawn_attacks(sq, !color).is_disjoint(own_pawns) {
+                    self.protected_pawn += inc;
+                }
+
+                if sq.file() > File::A && own_pawns.has(sq.offset(-1, 0)) {
+                    self.phalanx_pawn_rank[sq.rank().relative_to(color) as usize - 1] += inc;
+                }
             }
 
             let king = board.king(color);

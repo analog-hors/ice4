@@ -79,6 +79,7 @@ def to_evalcpp(last_loss, train_id, param_map):
     define_param("TEMPO")
     define_param("ISOLATED_PAWN", sign=-1)
     define_param("PROTECTED_PAWN")
+    define_param("THREATENED_BY_PAWN")
     define_param("ROOK_OPEN")
     define_param("ROOK_SEMIOPEN")
     datastring_param("PAWN_SHIELD", 4)

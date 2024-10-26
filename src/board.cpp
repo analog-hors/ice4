@@ -67,6 +67,16 @@ struct Board {
         } else {
             inc_eval -= PST[board[square]][square-A1];
         }
+        if (board[square] & WHITE
+                && ((board[square] & 7) != PAWN)
+                && (board[square + 9] == BLACK_PAWN || board[square + 11] == BLACK_PAWN)) {
+            pawn_eval -= THREATENED_BY_PAWN;
+        }
+        if (board[square] & BLACK
+                && ((board[square] & 7) != PAWN)
+                && (board[square - 9] == WHITE_PAWN || board[square - 11] == WHITE_PAWN)) {
+            pawn_eval += THREATENED_BY_PAWN;
+        }
         phase -= PHASE[board[square] & 7];
         board[square] = piece;
         zobrist ^= ZOBRIST[board[square]][square];
@@ -78,6 +88,16 @@ struct Board {
             pawn_hash ^= ZOBRIST[board[square]][square];
         } else {
             inc_eval += PST[board[square]][square-A1];
+        }
+        if (board[square] & WHITE
+                && ((board[square] & 7) != PAWN)
+                && (board[square + 9] == BLACK_PAWN || board[square + 11] == BLACK_PAWN)) {
+            pawn_eval += THREATENED_BY_PAWN;
+        }
+        if (board[square] & BLACK
+                && ((board[square] & 7) != PAWN)
+                && (board[square - 9] == WHITE_PAWN || board[square - 11] == WHITE_PAWN)) {
+            pawn_eval -= THREATENED_BY_PAWN;
         }
         phase += PHASE[board[square] & 7];
         if ((board[square] & 7) == KING) {
@@ -303,7 +323,7 @@ struct Board {
                     break;
                 }
             }
-            for (int rank = 6; rank > 0; rank--) {
+            for (int rank = 0; rank < 8; rank++) {
                 int sq = file + first_rank + rank * pawndir;
                 if (board[sq] == own_pawn) {
                     // Protected pawn: 32 bytes (v5)
@@ -318,6 +338,9 @@ struct Board {
                         sq += 9 - file - file;
                     }
                     pawn_eval += PST[own_pawn][sq-A1];
+                } else if (board[sq] & color && (
+                        board[sq + pawndir-1] == (own_pawn ^ INVALID) || board[sq + pawndir+1] == (own_pawn ^ INVALID))) {
+                    pawn_eval += THREATENED_BY_PAWN;
                 }
             }
         }
