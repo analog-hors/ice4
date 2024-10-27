@@ -214,6 +214,7 @@ struct Board {
             }
 
             int piece = board[sq] & 7;
+            #define APPLY_MOBILITY mobility += MOBILITY[piece] + MOBILITY_RANK[TARGET / 10 - 2 ^ (stm != WHITE) * 7] + MOBILITY_FILE[TARGET % 10 - 1] + king_ring[TARGET] * KING_RING_ATTACKS
 
             if (piece == KING && sq == (stm == WHITE ? E1 : E8) && quiets) {
                 if (!(castle_rights >> 2*(stm != WHITE) & SHORT_CASTLE) &&
@@ -230,23 +231,31 @@ struct Board {
                 int dir = stm == WHITE ? 10 : -10;
                 int promo = board[sq + dir + dir] == INVALID;
                 if (!board[sq + dir]) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir] * KING_RING_ATTACKS;
+                    #define TARGET (sq + dir)
+                    APPLY_MOBILITY;
+                    #undef TARGET
                     if (quiets || promo || board[sq + dir + dir + dir] == INVALID) {
                         list[count++] = create_move(sq, sq + dir, promo);
                     }
                     if (board[sq - dir - dir] == INVALID && !board[sq + dir + dir]) {
-                        mobility += MOBILITY[piece] + king_ring[sq + dir+dir] * KING_RING_ATTACKS;
+                        #define TARGET (sq + dir+dir)
+                        APPLY_MOBILITY;
+                        #undef TARGET
                         if (quiets) {
                             list[count++] = create_move(sq, sq + dir+dir, promo);
                         }
                     }
                 }
                 if (ep_square == sq + dir-1 || board[sq + dir-1] & OTHER && ~board[sq + dir-1] & stm) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir-1] * KING_RING_ATTACKS;
+                    #define TARGET (sq + dir-1)
+                    APPLY_MOBILITY;
+                    #undef TARGET
                     list[count++] = create_move(sq, sq + dir-1, promo);
                 }
                 if (ep_square == sq + dir+1 || board[sq + dir+1] & OTHER && ~board[sq + dir+1] & stm) {
-                    mobility += MOBILITY[piece] + king_ring[sq + dir+1] * KING_RING_ATTACKS;
+                    #define TARGET (sq + dir+1)
+                    APPLY_MOBILITY;
+                    #undef TARGET
                     list[count++] = create_move(sq, sq + dir+1, promo);
                 }
             } else {
@@ -257,7 +266,9 @@ struct Board {
                         if (board[raysq] & stm) {
                             break;
                         }
-                        mobility += MOBILITY[piece] + king_ring[raysq] * KING_RING_ATTACKS;
+                        #define TARGET (raysq)
+                        APPLY_MOBILITY;
+                        #undef TARGET
                         if (board[raysq] & OTHER) {
                             list[count++] = create_move(sq, raysq, 0);
                             break;
@@ -267,6 +278,8 @@ struct Board {
                     }
                 }
             }
+
+            #undef APPLY_MOBILITY
         }
         #undef OTHER
     }

@@ -17,6 +17,8 @@ pub struct Features {
     queen_file: [f32; 8],
     king_rank: [f32; 8],
     king_file: [f32; 8],
+    mobility_rank: [f32; 8],
+    mobility_file: [f32; 8],
     bishop_pair: f32,
     tempo: f32,
     isolated_pawn: f32,
@@ -114,9 +116,15 @@ impl Features {
                     Piece::King => get_king_moves(unflipped_square),
                 };
                 let mob = mob - board.colors(color);
-                self.king_ring_attacks +=
-                    inc * (get_king_moves(board.king(!color)) & mob).len() as f32;
-                self.mobility[piece as usize] += inc * (mob & !board.colors(color)).len() as f32;
+                self.mobility[piece as usize] += inc * mob.len() as f32;
+
+                for defended_square in mob {
+                    self.mobility_rank[defended_square.rank().relative_to(color) as usize] += inc;
+                    self.mobility_file[defended_square.file() as usize] += inc;
+                }
+
+                let enemy_king_ring = get_king_moves(board.king(!color));
+                self.king_ring_attacks += inc * (enemy_king_ring & mob).len() as f32;
             }
         }
 
