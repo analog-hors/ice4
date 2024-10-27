@@ -301,7 +301,10 @@ struct Board {
                         + (PASSER_RANK + KING_PASSER_DIST);
                     break;
                 }
-                if (board[sq] == opp_pawn || board[sq-1] == opp_pawn || board[sq+1] == opp_pawn) {
+                
+                if (board[sq] == opp_pawn || 
+                    (board[sq + pawndir-1] == opp_pawn) + (board[sq + pawndir+1] == opp_pawn)
+                        > (board[sq - pawndir-1] == own_pawn) + (board[sq - pawndir+1] == own_pawn)) {
                     break;
                 }
             }

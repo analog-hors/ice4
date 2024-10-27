@@ -1,6 +1,6 @@
 use cozy_chess::{
     get_bishop_moves, get_king_moves, get_knight_moves, get_pawn_attacks, get_pawn_quiets,
-    get_rook_moves, BitBoard, Board, Color, File, Piece, Rank,
+    get_rook_moves, get_between_rays, BitBoard, Board, Color, Piece, Square, File, Rank,
 };
 
 #[derive(Debug)]
@@ -122,27 +122,19 @@ impl Features {
 
         for &color in &Color::ALL {
             for square in board.pieces(Piece::Pawn) & board.colors(color) {
-                let mut passer_mask = square.file().adjacent() | square.file().bitboard();
-                match color {
-                    Color::White => {
-                        for r in 0..=square.rank() as usize {
-                            passer_mask &= !Rank::index(r).bitboard();
-                        }
-                    }
-                    Color::Black => {
-                        for r in square.rank() as usize..8 {
-                            passer_mask &= !Rank::index(r).bitboard();
-                        }
-                    }
-                }
+                let our_pawns = board.colored_pieces(color, Piece::Pawn);
+                let enemy_pawns = board.colored_pieces(!color, Piece::Pawn);
 
-                if !passer_mask.is_disjoint(board.colored_pieces(!color, Piece::Pawn)) {
-                    continue;
-                }
+                let queening_rank = Rank::Eighth.relative_to(color);
+                let queening_square = Square::new(square.file(), queening_rank);
+                let forward_span = get_between_rays(square, queening_square);
 
-                if !(passer_mask & square.file().bitboard())
-                    .is_disjoint(board.colored_pieces(color, Piece::Pawn))
-                {
+                let is_passed = forward_span.iter().all(|forward_square| {
+                    let attackers = get_pawn_attacks(forward_square, color) & enemy_pawns;
+                    let defenders = get_pawn_attacks(forward_square, !color) & our_pawns;
+                    !(our_pawns | enemy_pawns).has(forward_square) && attackers.len() <= defenders.len()
+                });
+                if !is_passed {
                     continue;
                 }
 
