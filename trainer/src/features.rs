@@ -24,6 +24,7 @@ pub struct Features {
     rook_on_open_file: f32,
     rook_on_semiopen_file: f32,
     shield_pawns: [f32; 4],
+    storm_pawn_rank_dist: [f32; 7],
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
@@ -95,7 +96,14 @@ impl Features {
                         self.pawn_pst[match board.king(color).file() > File::D {
                             true => square.flip_file() as usize - 8,
                             false => square as usize - 8,
-                        }] += inc
+                        }] += inc;
+
+                        let enemy_king = board.king(!color).relative_to(color);
+                        let enemy_king_rank_dist = enemy_king.rank() as i8 - square.rank() as i8;
+                        let enemy_king_file_dist = enemy_king.file() as i8 - square.file() as i8;
+                        if enemy_king_file_dist.abs() <= 1 && enemy_king_rank_dist >= 0 {
+                            self.storm_pawn_rank_dist[enemy_king_rank_dist as usize] += inc;
+                        }
                     }
                 }
 

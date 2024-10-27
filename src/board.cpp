@@ -307,6 +307,7 @@ struct Board {
             }
             for (int rank = 6; rank > 0; rank--) {
                 int sq = file + first_rank + rank * pawndir;
+                int enemy_king_rank = king_sq[!ci] / 10 - 2 ^ 7 * ci;
                 if (board[sq] == own_pawn) {
                     // Protected pawn: 32 bytes (v5)
                     // 8.0+0.08: 9.70 +- 4.84 [353, 1319, 1869, 1172, 287] 0.30 elo/byte
@@ -315,6 +316,9 @@ struct Board {
                     }
                     if (board[sq - 1] == own_pawn) {
                         pawn_eval += get_data(PHALANX_RANK_INDEX + rank) + PHALANX_RANK;
+                    }
+                    if (abs(king_sq[!ci] % 10 - file) <= 1 && enemy_king_rank >= rank) {
+                        pawn_eval += STORM_PAWN_RANK_DIST[enemy_king_rank - rank];
                     }
                     if (king_sq[ci] % 10 > 4) {
                         sq += 9 - file - file;
