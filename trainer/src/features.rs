@@ -24,7 +24,7 @@ pub struct Features {
     rook_on_open_file: f32,
     rook_on_semiopen_file: f32,
     shield_pawns: [f32; 4],
-    storm_pawn_rank: [f32; 6],
+    storm_pawn: [[f32; 6]; 4],
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
@@ -99,7 +99,11 @@ impl Features {
                         }] += inc;
 
                         if (square.file().bitboard() | square.file().adjacent()).has(board.king(!color)) {
-                            self.storm_pawn_rank[square.rank() as usize - 1] += inc;
+                            let file_index = match square.file() > File::D {
+                                true => square.file().flip() as usize,
+                                false => square.file() as usize,
+                            };
+                            self.storm_pawn[file_index][square.rank() as usize - 1] += inc;
                         }
                     }
                 }
