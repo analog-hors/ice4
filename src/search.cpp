@@ -256,7 +256,9 @@ struct Searcher {
             if (v >= beta) {
                 if (!victim) {
                     int bonus = 5.6 * depth * depth;
-                    bonus <<= ((eval <= alpha) + (eval <= alpha - 42));
+                    if (eval <= alpha) {
+                        bonus = bonus * (2 + min((alpha - eval) / 21.0, 2.0));
+                    }
                     int16_t *hist;
                     for (int j = 0; j < i; j++) {
                         if (board.board[moves[j].to]) {
