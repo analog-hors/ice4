@@ -26,7 +26,7 @@ void uci() {
         if (auto value = get_if<int*>(&variant)) {
             printf("option name %s type string default %d\n", name.c_str(), **value);
         }
-        if (auto value = get_if<float*>(&variant)) {
+        if (auto value = get_if<double*>(&variant)) {
             printf("option name %s type string default %.17g\n", name.c_str(), **value);
         }
     }
@@ -67,7 +67,7 @@ void uci() {
                     if (auto value = get_if<int*>(&variant)) {
                         tokens >> token >> **value; // value <value>
                     }
-                    if (auto value = get_if<float*>(&variant)) {
+                    if (auto value = get_if<double*>(&variant)) {
                         tokens >> token >> **value; // value <value>
                     }
                 }
