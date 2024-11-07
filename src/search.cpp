@@ -259,12 +259,12 @@ struct Searcher {
                 bonus <<= ((eval <= alpha) + (eval <= alpha - 42));
                 int16_t *hist;
                 for (int j = 0; j < i; j++) {
-                    if (!victim && board.board[moves[j].to]) {
+                    if (victim && !board.board[moves[j].to]) {
                         continue;
                     }
                     hist = &history[board.board[moves[j].to]][board.board[moves[j].from]][moves[j].to];
                     *hist -= bonus + bonus * *hist / MAX_HIST;
-                    if (!victim && !board.board[moves[j].to]) {
+                    if (!board.board[moves[j].to]) {
                         hist = &(*conthist_stack[ply + 1])[board.board[moves[j].from]][moves[j].to];
                         *hist -= bonus + bonus * *hist / MAX_HIST;
                         hist = &(*conthist_stack[ply])[board.board[moves[j].from]][moves[j].to];
