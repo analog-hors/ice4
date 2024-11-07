@@ -23,6 +23,7 @@ struct Searcher {
     double soft_limit;
     int16_t evals[256];
     int64_t corr_hist[2][CORR_HIST_SIZE];
+    int64_t stm_corr_hist[2];
     HTable history;
     HTable conthist[14][SQUARE_SPAN];
     HTable *conthist_stack[256];
@@ -69,6 +70,7 @@ struct Searcher {
         evals[ply] = board.eval(mobilities[ply+1] - mobilities[ply] + TEMPO)
             + corr_hist[board.stm != WHITE][board.pawn_hash % CORR_HIST_SIZE] / 178
             + corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] / 198
+            + stm_corr_hist[board.stm != WHITE] / 300
             + (*conthist_stack[ply+1])[0][0] / 102
             + (*conthist_stack[ply])[1][0] / 200;
         int eval = tt_good && tt.eval < 20000 && tt.eval > -20000 ? tt.eval : evals[ply];
@@ -305,6 +307,9 @@ struct Searcher {
                     clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
                 corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] =
                     corr_hist[board.stm != WHITE][board.material_hash % CORR_HIST_SIZE] * (1 - weight) +
+                    clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
+                stm_corr_hist[board.stm != WHITE] =
+                    stm_corr_hist[board.stm != WHITE] * (1 - weight) +
                     clamp(best - evals[ply], -CORR_HIST_MAX, CORR_HIST_MAX) * CORR_HIST_UNIT * weight;
                 (*conthist_stack[ply+1])[0][0] =
                     (*conthist_stack[ply+1])[0][0] * (1 - weight) +
