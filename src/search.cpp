@@ -192,6 +192,10 @@ struct Searcher {
                 continue;
             }
 
+            if (!pv && !board.check && depth <= 1 && victim && score[i] - victim * 1e5 < -3000) {
+                continue;
+            }
+
             Board mkmove = board;
             if (mkmove.make_move(moves[i])) {
                 continue;
