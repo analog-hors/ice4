@@ -2,27 +2,27 @@
 
 #define S(a, b) (a + (b * 0x10000))
 
-int MATERIAL[] = {0, S(29, 69), S(158, 248), S(214, 285), S(342, 528), S(730, 940), S(0, 0)};
-int MOBILITY[] = {0, S(4, 8), S(1, -2), S(4, 5), S(2, 2), S(2, 1), S(-4, 0)};
+int MATERIAL[] = {0, S(24, 57), S(131, 206), S(178, 237), S(285, 439), S(608, 784), S(0, 0)};
+int MOBILITY[] = {0, S(3, 7), S(1, -1), S(3, 4), S(2, 2), S(2, 1), S(-3, 0)};
 
-#define DATA_STRING L":XT;85/ >M@:83'\"@HQMK>0(GT]]TF@1WdpjhRC-)LWN>B9v´  /6>@A7.S`b^ZbQ  **$(&0'.!# -==; #*0721+9=6,(3%   \"#%'+)_[<! AMQDM; 3.UR ,/5$ '59yce]^chvpc dbimn` /2B®ï\"'.4'*),$&-,+&'''-%\" %+*23(\"!(.4@J4(\"*99RQU:686< 5LW^K?=#6JMKD7  \"003/0=%(',),'   &031:8--.)\"%\"  ,Ro~|k 2>GBA85'1;BKTI )9AIAA3 >#!  1Pp¡È?k_OGHGE? =T`hns $1L}Â"
+#define DATA_STRING L"6OK641, 9E;640&\";BIFD9-'@LSSK@;.NYtc^\\J=+(DNG9<5ht~  -39;<4,KUWTPWI  (($'%-%+!\" *776 #).40/*593+'0%  !\"#$&)(TR8! <FI>F7 0+LI *,2# %14iXZSTX\\hcX YW]`aU -/<Ì\"',1&)(*$%++)&&&'+%# %*(00'\"!',1;C1'\")66JJL63538 2ENTD:8#3CFD?4  \"-.0-.8%('*(+&  !&.0/65+,,(#%\"  *Ibnlv_ /9@<;41&.7<DKB '4;A;;/ 9\"!  .Gb¬9]TF@A@>9 7KT[`d $/Fn¨"
 
 #define EG_OFFSET 160
 
-#define BISHOP_PAIR S(26, 45)
-#define TEMPO S(12, 13)
-#define ISOLATED_PAWN S(8, 7)
-#define PROTECTED_PAWN S(14, 12)
-#define ROOK_OPEN S(27, 1)
-#define ROOK_SEMIOPEN S(11, 9)
+#define BISHOP_PAIR S(22, 38)
+#define TEMPO S(10, 11)
+#define ISOLATED_PAWN S(7, 6)
+#define PROTECTED_PAWN S(11, 10)
+#define ROOK_OPEN S(23, 1)
+#define ROOK_SEMIOPEN S(9, 8)
 #define PAWN_SHIELD_INDEX 128
-#define PAWN_SHIELD S(-13, -20)
-#define KING_OPEN S(-50, -1)
-#define KING_SEMIOPEN S(-12, 11)
-#define KING_RING_ATTACKS S(15, -6)
+#define PAWN_SHIELD S(-11, -17)
+#define KING_OPEN S(-41, 0)
+#define KING_SEMIOPEN S(-10, 9)
+#define KING_RING_ATTACKS S(12, -5)
 #define PASSER_RANK_INDEX 131
-#define PASSER_RANK S(-16, -50)
+#define PASSER_RANK S(-13, -41)
 #define KING_PASSER_DIST_INDEX 138
-#define KING_PASSER_DIST S(-134, -62)
+#define KING_PASSER_DIST S(-112, -50)
 #define PHALANX_RANK_INDEX 153
-#define PHALANX_RANK S(0, 3)
+#define PHALANX_RANK S(0, 2)
