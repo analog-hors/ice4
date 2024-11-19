@@ -28,6 +28,7 @@ struct Searcher {
     HTable *conthist_stack[256];
     uint64_t rep_list[256];
     int mobilities[256];
+    int move_hist_stack[256];
 
     int negamax(Board &board, Move &bestmv, int alpha, int beta, int depth, int ply) {
         if (depth < 0) {
@@ -90,12 +91,13 @@ struct Searcher {
         // Null Move Pruning: 51 bytes (fef0130 vs 98a56ea)
         // 8.0+0.08: 123.85 +- 5.69 (4993 - 1572 - 3435) 2.43 elo/byte
         // 60.0+0.6: 184.01 +- 5.62 (5567 - 716 - 3717) 3.61 elo/byte
-        if (!pv && !board.check && eval >= beta && beta > -20000 && depth > 2) {
+        if (!pv && !board.check && eval >= beta && beta > -20000 && move_hist_stack[ply] < 5000 && depth > 2) {
             Board mkmove = board;
             mkmove.zobrist ^= ZOBRIST[EMPTY][0];
             mkmove.stm ^= INVALID;
             mkmove.ep_square = 0;
 
+            move_hist_stack[ply + 1] = 0;
             conthist_stack[ply + 2] = &conthist[0][0];
 
             int reduction = (eval - beta + depth * 27 + 438) / 107;
@@ -198,6 +200,7 @@ struct Searcher {
                 continue;
             }
 
+            move_hist_stack[ply + 1] = history[board.board[moves[i].to]][board.board[moves[i].from]][moves[i].to];
             conthist_stack[ply + 2] = &conthist[board.board[moves[i].from] - WHITE_PAWN][moves[i].to];
             if (!(++nodes & 0xFFF) && (ABORT || now() > hard_limit)) {
                 throw 0;
