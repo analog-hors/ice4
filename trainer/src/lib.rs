@@ -32,7 +32,7 @@ pub unsafe extern "C" fn decode_data(
             .zip(phases)
             .zip(targets)
             .for_each(|(((board, features), phase), target)| {
-                let (board, _, outcome, _) = board.unpack().unwrap();
+                let (board, eval, outcome, _) = board.unpack().unwrap();
 
                 features.extract(&board);
 
@@ -44,7 +44,8 @@ pub unsafe extern "C" fn decode_data(
                     + board.pieces(Piece::King).len() * 0) as f32
                     / 24.0;
 
-                *target = outcome as f32 / 2.0;
+                let sigmoid = |x: f32| 1.0 / (1.0 + (-x).exp());
+                *target = (outcome as f32 / 2.0) * 0.9 + sigmoid(eval as f32 / 600.0) * 0.1;
             });
     })
     .is_ok()
