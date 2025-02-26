@@ -31,7 +31,8 @@ pub struct Features {
     passer_own_king_dist: [f32; 8],
     passer_enemy_king_dist: [f32; 8],
     phalanx_pawn_rank: [f32; 6],
-    king_attack_weight: [[f32; 5]; Color::NUM],
+    king_attackers: [[f32; 5]; Color::NUM],
+    king_attacked_squares: [[f32; 5]; Color::NUM],
 }
 
 impl Features {
@@ -118,7 +119,8 @@ impl Features {
 
                 let king_ring_attacks = (get_king_moves(board.king(!color)) & mob).len();
                 if piece != Piece::King {
-                    self.king_attack_weight[color as usize][piece as usize] += king_ring_attacks as f32;
+                    self.king_attackers[color as usize][piece as usize] += 1.0;
+                    self.king_attacked_squares[color as usize][piece as usize] += king_ring_attacks as f32;
                 }
             }
         }

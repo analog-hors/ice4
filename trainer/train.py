@@ -50,21 +50,27 @@ def batch_loader():
 class Model(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.mg = torch.nn.Linear(FEATURE_COUNT - 10, 1, bias=False)
+        self.mg = torch.nn.Linear(FEATURE_COUNT - 20, 1, bias=False)
         torch.nn.init.zeros_(self.mg.weight)
-        self.eg = torch.nn.Linear(FEATURE_COUNT - 10, 1, bias=False)
+        self.eg = torch.nn.Linear(FEATURE_COUNT - 20, 1, bias=False)
         torch.nn.init.zeros_(self.eg.weight)
-        self.king_attack = torch.nn.Linear(5, 1, bias=False)
-        torch.nn.init.ones_(self.king_attack.weight)
+        self.king_attackers = torch.nn.Linear(5, 1, bias=False)
+        torch.nn.init.ones_(self.king_attackers.weight)
+        self.king_attacked_squares = torch.nn.Linear(5, 1, bias=False)
+        torch.nn.init.ones_(self.king_attacked_squares.weight)
 
     def forward(self, features, phase):
-        linear = features[:, :-10]
-        king_safety = features[:, -10:].reshape((-1, 2, 5))
+        linear = features[:, :-20]
+        king_attackers = features[:, -20:-10].reshape((-1, 2, 5))
+        king_attacked_squares = features[:, -10:].reshape((-1, 2, 5))
 
         mg = self.mg(linear)
         eg = self.eg(linear)
 
-        king_attack = self.king_attack(king_safety) ** 2
+        king_attackers = self.king_attackers(king_attackers)
+        king_attacked_squares = self.king_attacked_squares(king_attacked_squares)
+        
+        king_attack = king_attackers ** 2 + king_attacked_squares ** 2
         king_attack = king_attack[:, 0] - king_attack[:, 1]
 
         score = torch.lerp(eg, mg + king_attack, phase)

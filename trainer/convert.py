@@ -89,8 +89,13 @@ def to_evalcpp(last_loss, train_id, param_map):
     datastring_param("KING_PASSER_DIST", 16, scale=2)
     datastring_param("PHALANX_RANK", 6, adjust=-1)
 
-    print("int KING_ATTACK_WEIGHT[] = {0", end="")
-    for i, weight in enumerate(param_map["king_attack.weight"][0]):
+    print("int KING_ATTACKERS[] = {0", end="")
+    for i, weight in enumerate(param_map["king_attackers.weight"][0]):
+        print(f", S({round(weight * 160)}, 0)", end="")
+    print(", 0};")
+
+    print("int KING_ATTACKED_SQUARES[] = {0", end="")
+    for i, weight in enumerate(param_map["king_attacked_squares.weight"][0]):
         print(f", S({round(weight * 160)}, 0)", end="")
     print(", 0};")
 
