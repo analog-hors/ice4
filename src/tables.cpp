@@ -32,10 +32,15 @@ uint64_t rng() {
 #endif
 
 uint64_t ZOBRIST[25][SQUARE_SPAN];
+uint8_t KING_RING[SQUARE_SPAN][120]{};
 
 void init_tables() {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
+            for (int i = 0; i < 8; i++) {
+                KING_RING[A1+10*rank+file][A1+10*rank+file + RAYS[i]] = 1;
+            }
+
             if (rank > 0 && rank < 7) {
                 PST[WHITE_PAWN][10*rank+file] = PST[BLACK_PAWN][70-10*rank+file] =
                     get_data(rank*8+file-8) + MATERIAL[PAWN];
