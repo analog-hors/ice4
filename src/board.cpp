@@ -198,16 +198,18 @@ struct Board {
         #undef NSTM
     }
 
-    void movegen(Move list[], int& count, int quiets, int& mobility) {
+    void movegen(Move list[], int& count, int quiets, int& mobility, uint64_t& attack_hash) {
         // King ring attacks: 30 bytes (v5)
         // 8.0+0.08: 7.47 +- 4.89 [382, 1239, 1891, 1190, 299] 0.25 elo/byte
         // Mobility: 26 bytes (v5)
         // 8.0+0.08: 103.92 +- 5.26 [970, 1765, 1563, 604, 98] 4.00 elo/byte
         uint8_t king_ring[120] = {};
-        int attack = 0;
+        uint8_t attack[7] = {};
+        int total_attack = 0;
         #define OTHER (stm ^ INVALID)
         count = 0;
         mobility = 0;
+        attack_hash = ZOBRIST[7][king_sq[stm == WHITE]];
         for (int i = 0; i < 8; i++) {
             king_ring[king_sq[stm == WHITE] + RAYS[i]] = 1;
         }
@@ -235,13 +237,13 @@ struct Board {
                 int promo = board[sq + dir + dir] == INVALID;
                 if (!board[sq + dir]) {
                     mobility += MOBILITY[piece];
-                    attack += king_ring[sq + dir] * KING_ATTACK_WEIGHT[piece];
+                    attack[piece] += king_ring[sq + dir];
                     if (quiets || promo || board[sq + dir + dir + dir] == INVALID) {
                         list[count++] = create_move(sq, sq + dir, promo);
                     }
                     if (board[sq - dir - dir] == INVALID && !board[sq + dir + dir]) {
                         mobility += MOBILITY[piece];
-                        attack += king_ring[sq + dir+dir] * KING_ATTACK_WEIGHT[piece];
+                        attack[piece] += king_ring[sq + dir+dir];
                         if (quiets) {
                             list[count++] = create_move(sq, sq + dir+dir, promo);
                         }
@@ -249,12 +251,12 @@ struct Board {
                 }
                 if (ep_square == sq + dir-1 || board[sq + dir-1] & OTHER && ~board[sq + dir-1] & stm) {
                     mobility += MOBILITY[piece];
-                    attack += king_ring[sq + dir-1] * KING_ATTACK_WEIGHT[piece];
+                    attack[piece] += king_ring[sq + dir-1];
                     list[count++] = create_move(sq, sq + dir-1, promo);
                 }
                 if (ep_square == sq + dir+1 || board[sq + dir+1] & OTHER && ~board[sq + dir+1] & stm) {
                     mobility += MOBILITY[piece];
-                    attack += king_ring[sq + dir+1] * KING_ATTACK_WEIGHT[piece];
+                    attack[piece] += king_ring[sq + dir+1];
                     list[count++] = create_move(sq, sq + dir+1, promo);
                 }
             } else {
@@ -266,7 +268,7 @@ struct Board {
                             break;
                         }
                         mobility += MOBILITY[piece];
-                        attack += king_ring[raysq] * KING_ATTACK_WEIGHT[piece];
+                        attack[piece] += king_ring[raysq];
                         if (board[raysq] & OTHER) {
                             list[count++] = create_move(sq, raysq, 0);
                             break;
@@ -287,7 +289,11 @@ struct Board {
                 }
             }
         }
-        mobility += attack * attack / 160;
+        for (int piece = PAWN; piece < KING; piece++) {
+            total_attack += attack[piece] * KING_ATTACK_WEIGHT[piece];
+            attack_hash ^= ZOBRIST[piece][attack[piece] + 10];
+        }
+        mobility += total_attack * total_attack / 160;
         #undef OTHER
     }
 
