@@ -205,7 +205,9 @@ struct Board {
         // 8.0+0.08: 103.92 +- 5.26 [970, 1765, 1563, 604, 98] 4.00 elo/byte
         uint8_t king_ring[120] = {};
         int attack = 0;
+        int dir = stm == WHITE ? 10 : -10;
         #define OTHER (stm ^ INVALID)
+        #define ENEMY_PAWN (PAWN | stm ^ INVALID)
         count = 0;
         mobility = 0;
         for (int i = 0; i < 8; i++) {
@@ -218,6 +220,9 @@ struct Board {
             }
 
             int piece = board[sq] & 7;
+            #define MOBILITY_COND board[MOB_SQUARE + dir - 1] != ENEMY_PAWN && board[MOB_SQUARE + dir + 1] != ENEMY_PAWN
+            #define MOBILITY_BODY mobility += MOBILITY[piece]; attack += king_ring[MOB_SQUARE] * KING_ATTACK_WEIGHT[piece];
+            #define APPLY_MOBILITY if (MOBILITY_COND) { MOBILITY_BODY }
 
             if (piece == KING && sq == (stm == WHITE ? E1 : E8) && quiets) {
                 if (!(castle_rights >> 2*(stm != WHITE) & SHORT_CASTLE) &&
@@ -231,30 +236,33 @@ struct Board {
             }
 
             if (piece == PAWN) {
-                int dir = stm == WHITE ? 10 : -10;
                 int promo = board[sq + dir + dir] == INVALID;
                 if (!board[sq + dir]) {
-                    mobility += MOBILITY[piece];
-                    attack += king_ring[sq + dir] * KING_ATTACK_WEIGHT[piece];
+                    #define MOB_SQUARE sq + dir
+                    APPLY_MOBILITY
+                    #undef MOB_SQUARE
                     if (quiets || promo || board[sq + dir + dir + dir] == INVALID) {
                         list[count++] = create_move(sq, sq + dir, promo);
                     }
                     if (board[sq - dir - dir] == INVALID && !board[sq + dir + dir]) {
-                        mobility += MOBILITY[piece];
-                        attack += king_ring[sq + dir+dir] * KING_ATTACK_WEIGHT[piece];
+                        #define MOB_SQUARE sq + dir+dir
+                        APPLY_MOBILITY
+                        #undef MOB_SQUARE
                         if (quiets) {
                             list[count++] = create_move(sq, sq + dir+dir, promo);
                         }
                     }
                 }
                 if (ep_square == sq + dir-1 || board[sq + dir-1] & OTHER && ~board[sq + dir-1] & stm) {
-                    mobility += MOBILITY[piece];
-                    attack += king_ring[sq + dir-1] * KING_ATTACK_WEIGHT[piece];
+                    #define MOB_SQUARE sq + dir-1
+                    APPLY_MOBILITY
+                    #undef MOB_SQUARE
                     list[count++] = create_move(sq, sq + dir-1, promo);
                 }
                 if (ep_square == sq + dir+1 || board[sq + dir+1] & OTHER && ~board[sq + dir+1] & stm) {
-                    mobility += MOBILITY[piece];
-                    attack += king_ring[sq + dir+1] * KING_ATTACK_WEIGHT[piece];
+                    #define MOB_SQUARE sq + dir+1
+                    APPLY_MOBILITY
+                    #undef MOB_SQUARE
                     list[count++] = create_move(sq, sq + dir+1, promo);
                 }
             } else {
@@ -265,8 +273,9 @@ struct Board {
                         if (board[raysq] & stm) {
                             break;
                         }
-                        mobility += MOBILITY[piece];
-                        attack += king_ring[raysq] * KING_ATTACK_WEIGHT[piece];
+                        #define MOB_SQUARE raysq
+                        APPLY_MOBILITY
+                        #undef MOB_SQUARE
                         if (board[raysq] & OTHER) {
                             list[count++] = create_move(sq, raysq, 0);
                             break;
@@ -286,9 +295,13 @@ struct Board {
                     }
                 }
             }
+            #undef MOBILITY_COND
+            #undef MOBILITY_BODY
+            #undef APPLY_MOBILITY
         }
         mobility += attack * attack / 160;
         #undef OTHER
+        #undef ENEMY_PAWN
     }
 
     void calculate_pawn_eval(int ci, int color, int pawndir, int first_rank) {

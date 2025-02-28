@@ -60,6 +60,13 @@ impl Features {
     }
 
     pub fn extract(&mut self, board: &Board) {
+        let mut pawn_attacks = [BitBoard::EMPTY; Color::NUM];
+        for color in Color::ALL {
+            for square in board.colored_pieces(color, Piece::Pawn) {
+                pawn_attacks[color as usize] |= get_pawn_attacks(square, color);
+            }
+        }
+
         for &piece in &Piece::ALL {
             for unflipped_square in board.pieces(piece) {
                 let color = board.color_on(unflipped_square).unwrap();
@@ -113,7 +120,8 @@ impl Features {
                     }
                     Piece::King => get_king_moves(unflipped_square),
                 };
-                let mob = mob - board.colors(color);
+                let mob = mob - board.colors(color) - pawn_attacks[!color as usize];
+
                 self.mobility[piece as usize] += inc * mob.len() as f32;
 
                 let king_ring_attacks = (get_king_moves(board.king(!color)) & mob).len();
