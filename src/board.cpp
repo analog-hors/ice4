@@ -284,6 +284,9 @@ struct Board {
                             break;
                         }
                     }
+                    if (board[raysq] == (PAWN | stm)) {
+                        mobility += OWN_PAWN_BLOCKERS[piece];
+                    }
                 }
             }
         }

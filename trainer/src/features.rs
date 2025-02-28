@@ -27,6 +27,7 @@ pub struct Features {
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
     mobility: [f32; 6],
+    own_pawn_blockers: [f32; 6],
     passed_pawn_ranks: [f32; 6],
     passer_own_king_dist: [f32; 8],
     passer_enemy_king_dist: [f32; 8],
@@ -99,7 +100,7 @@ impl Features {
                     }
                 }
 
-                let mob = match piece {
+                let capturing_mob = match piece {
                     Piece::Pawn => {
                         get_pawn_quiets(unflipped_square, color, board.occupied())
                             | (get_pawn_attacks(unflipped_square, color) & board.colors(!color))
@@ -113,8 +114,14 @@ impl Features {
                     }
                     Piece::King => get_king_moves(unflipped_square),
                 };
-                let mob = mob - board.colors(color);
+                let mob = capturing_mob - board.colors(color);
+
                 self.mobility[piece as usize] += inc * mob.len() as f32;
+                
+                if piece != Piece::Pawn {
+                    let own_pawn_blockers = capturing_mob & board.colored_pieces(color, Piece::Pawn);
+                    self.own_pawn_blockers[piece as usize] += inc * own_pawn_blockers.len() as f32;
+                }
 
                 let king_ring_attacks = (get_king_moves(board.king(!color)) & mob).len();
                 if piece != Piece::King {
