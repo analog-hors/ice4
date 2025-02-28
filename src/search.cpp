@@ -28,6 +28,7 @@ struct Searcher {
     HTable *conthist_stack[256];
     uint64_t rep_list[256];
     int mobilities[256];
+    Move killers[256];
 
     int negamax(Board &board, Move &bestmv, int alpha, int beta, int depth, int ply) {
         if (depth < 0) {
@@ -120,18 +121,19 @@ struct Searcher {
 
         for (int j = 0; j < mvcount; j++) {
             if (hashmv.from == moves[j].from && hashmv.to == moves[j].to) {
-                score[j] = 1e7;
+                score[j] = 1e8;
             } else if (board.board[moves[j].to]) {
                 // MVV-LVA capture ordering: 3 bytes (78a3963 vs 35f9b66)
                 // 8.0+0.08: 289.03 +- 7.40 (7378 - 563 - 2059) 96.34 elo/byte
                 // 60.0+0.6: 237.53 +- 6.10 (6384 - 445 - 3171) 79.18 elo/byte
                 score[j] = history[board.board[moves[j].to]][board.board[moves[j].from]][moves[j].to]
-                    + (board.board[moves[j].to] & 7) * 1e5;
+                    + (board.board[moves[j].to] & 7) * 1e6;
             } else {
                 // Plain history: 28 bytes (676e7fa vs 4cabdf1)
                 // 8.0+0.08: 51.98 +- 5.13 (3566 - 2081 - 4353) 1.86 elo/byte
                 // 60.0+0.6: 52.37 +- 4.62 (3057 - 1561 - 5382) 1.87 elo/byte
                 score[j] = history[board.board[moves[j].to]][board.board[moves[j].from]][moves[j].to]
+                    + 1e5 * (killers[ply].from == moves[j].from && killers[ply].to == moves[j].to)
                     // Continuation histories: 87 bytes (af63703 vs 4cabdf1)
                     // 8.0+0.08: 22.93 +- 5.09 (3124 - 2465 - 4411) 0.26 elo/byte
                     // 60.0+0.6: 46.52 +- 4.57 (2930 - 1599 - 5471) 0.53 elo/byte
@@ -155,6 +157,7 @@ struct Searcher {
             return best;
         }
 
+        killers[ply + 1] = Move{};
         for (int i = 0; i < mvcount; i++) {
             int best_so_far = i;
             for (int j = i+1; j < mvcount; j++) {
@@ -226,9 +229,9 @@ struct Searcher {
                 // History reduction: 9 bytes (v4)
                 // 8.0+0.08: 26.28 +- 2.98     2.92 elo/byte
                 // 60.0+0.6: 37.09 +- 2.65     4.12 elo/byte
-                reduction -= score[i] / 3842;
+                reduction -= score[i] % 100000 / 3842;
                 if (victim) {
-                    reduction = (score[i] - victim * 1e5) / -3842;
+                    reduction = (score[i] - victim * 1e6) / -3842;
                 }
                 if (reduction < 0) {
                     reduction = 0;
@@ -281,6 +284,7 @@ struct Searcher {
                     *hist += bonus - bonus * *hist / MAX_HIST;
                     hist = &(*conthist_stack[ply])[board.board[moves[i].from]][moves[i].to];
                     *hist += bonus - bonus * *hist / MAX_HIST;
+                    killers[ply] = bestmv;
                 }
                 break;
             }
