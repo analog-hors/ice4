@@ -258,6 +258,7 @@ struct Board {
                     list[count++] = create_move(sq, sq + dir+1, promo);
                 }
             } else {
+                int piece_mobility = 0;
                 for (int i = STARTS[piece]; i < ENDS[piece]; i++) {
                     int raysq = sq;
                     for (;;) {
@@ -265,6 +266,7 @@ struct Board {
                         if (board[raysq] & stm) {
                             break;
                         }
+                        piece_mobility++;
                         mobility += MOBILITY[piece];
                         attack += king_ring[raysq] * KING_ATTACK_WEIGHT[piece];
                         if (board[raysq] & OTHER) {
@@ -283,6 +285,16 @@ struct Board {
                         if (piece / 3 - 1) {
                             break;
                         }
+                    }
+                }
+                if (piece == ROOK && piece_mobility <= 4 && (sq <= H2 || sq >= A7)) {
+                    int king_file = king_sq[stm != WHITE] % 10;
+                    int rights = castle_rights >> 2*(stm != WHITE);
+                    if (rights & LONG_CASTLE && sq % 10 < king_file && king_file < 5) {
+                        mobility += ROOK_BURIED;
+                    }
+                    if (rights & SHORT_CASTLE && sq % 10 > king_file && king_file >= 5) {
+                        mobility += ROOK_BURIED;
                     }
                 }
             }

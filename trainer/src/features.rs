@@ -23,6 +23,7 @@ pub struct Features {
     protected_pawn: f32,
     rook_on_open_file: f32,
     rook_on_semiopen_file: f32,
+    rook_buried: f32,
     shield_pawns: [f32; 4],
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
@@ -119,6 +120,17 @@ impl Features {
                 let king_ring_attacks = (get_king_moves(board.king(!color)) & mob).len();
                 if piece != Piece::King {
                     self.king_attack_weight[color as usize][piece as usize] += king_ring_attacks as f32;
+                }
+                
+                if piece == Piece::Rook && mob.len() <= 4 && (square.rank() <= Rank::Second || square.rank() >= Rank::Seventh) {
+                    let king = board.king(color);
+                    let castling = board.castle_rights(color);
+                    if square.file() < king.file() && king.file() < File::E && castling.long.is_none() {
+                        self.rook_buried += inc;
+                    }
+                    if square.file() > king.file() && king.file() >= File::E && castling.short.is_none() {
+                        self.rook_buried += inc;
+                    }
                 }
             }
         }
