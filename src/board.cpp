@@ -53,6 +53,7 @@ struct Board {
     uint64_t pawn_hash;
     uint64_t material_hash;
     uint64_t nonpawn_hash[4];
+    uint64_t pawn_attacked[2];
 
     void edit(int square, int piece) {
         if ((board[square] & 7) == PAWN || (piece & 7) == PAWN || (piece & 7) == KING) {
@@ -220,7 +221,7 @@ struct Board {
             }
 
             int piece = board[sq] & 7;
-            #define MOBILITY_COND board[MOB_SQUARE + dir - 1] != ENEMY_PAWN && board[MOB_SQUARE + dir + 1] != ENEMY_PAWN
+            #define MOBILITY_COND !(pawn_attacked[stm == WHITE] & (1ull << (MOB_SQUARE) * 81 / 5 % 64))
             #define MOBILITY_BODY mobility += MOBILITY[piece]; attack += king_ring[MOB_SQUARE] * KING_ATTACK_WEIGHT[piece];
             #define APPLY_MOBILITY if (MOBILITY_COND) { MOBILITY_BODY }
 
@@ -308,6 +309,7 @@ struct Board {
         int shield_pawns = 0;
         int own_pawn = PAWN | color;
         int opp_pawn = own_pawn ^ INVALID;
+        pawn_attacked[ci] = 0;
         // King on (semi-)open file: 23 bytes (v5)
         // 8.0+0.08: 11.02 +- 4.70 [319, 1331, 1950, 1148, 252] 0.48 elo/byte
         if (!piece_file_counts[own_pawn][king_sq[ci] % 10]) {
@@ -349,6 +351,12 @@ struct Board {
                     if (board[sq - 1] == own_pawn) {
                         pawn_eval += get_data(PHALANX_RANK_INDEX + rank) + PHALANX_RANK;
                     }
+                    if (file > 1) {
+                        pawn_attacked[ci] |= 1ull << (sq + pawndir - 1) * 81 / 5 % 64;
+                    }
+                    if (file < 8) {
+                        pawn_attacked[ci] |= 1ull << (sq + pawndir + 1) * 81 / 5 % 64;
+                    }
                     if (king_sq[ci] % 10 > 4) {
                         sq += 9 - file - file;
                     }
@@ -367,7 +375,7 @@ struct Board {
         }
     }
 
-    int eval(int stm_eval) {
+    void do_pawn_eval() {
         if (pawn_eval_dirty) {
             pawn_eval = 0;
             calculate_pawn_eval(1, BLACK, -10, 90);
@@ -375,7 +383,9 @@ struct Board {
             calculate_pawn_eval(0, WHITE, 10, 20);
             pawn_eval_dirty = 0;
         }
+    }
 
+    int eval(int stm_eval) {
         // Bishop pair: 29 bytes (v5)
         // 8.0+0.08: 25.79 +- 4.96 [466, 1393, 1806, 1086, 249] 0.89 elo/byte
         int e = inc_eval + pawn_eval + BISHOP_PAIR * ((piece_counts[WHITE_BISHOP] >= 2) - (piece_counts[BLACK_BISHOP] >= 2));

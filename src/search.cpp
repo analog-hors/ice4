@@ -62,6 +62,7 @@ struct Searcher {
             depth -= 2;
         }
 
+        board.do_pawn_eval();
         board.movegen(moves, mvcount, depth, mobilities[ply+1]);
 
         rep_list[ply] = board.zobrist;
