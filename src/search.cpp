@@ -213,7 +213,7 @@ struct Searcher {
             }
 
             if (is_rep) {
-                v = 0;
+                v = nodes % 8;
             } else if (legals) {
                 // All reductions: 41 bytes (cedac94 vs b915a59)
                 // 8.0+0.08: 184.70 +- 6.16 (5965 - 1099 - 2936) 4.50 elo/byte
