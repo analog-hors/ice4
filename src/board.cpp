@@ -260,18 +260,27 @@ struct Board {
             } else {
                 for (int i = STARTS[piece]; i < ENDS[piece]; i++) {
                     int raysq = sq;
+                    int add_moves = 1;
                     for (;;) {
                         raysq += RAYS[i];
                         if (board[raysq] & stm) {
-                            break;
+                            int other = board[raysq] & 7;
+                            if ((add_moves = (other / 3 - 1) || i < STARTS[other] || i >= ENDS[other])) {
+                                break;
+                            }
                         }
                         mobility += MOBILITY[piece];
                         attack += king_ring[raysq] * KING_ATTACK_WEIGHT[piece];
                         if (board[raysq] & OTHER) {
-                            list[count++] = create_move(sq, raysq, 0);
+                            if (add_moves) {
+                                list[count++] = create_move(sq, raysq, 0);
+                            }
                             break;
-                        } else if (quiets) {
-                            list[count++] = create_move(sq, raysq, 0);
+                        }
+                        if (quiets) {
+                            if (add_moves) {
+                                list[count++] = create_move(sq, raysq, 0);
+                            }
                         }
 
                         // breaks loop for non-sliders

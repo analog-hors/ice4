@@ -99,17 +99,23 @@ impl Features {
                     }
                 }
 
+                let ortho_blockers = board.occupied()
+                    - board.colored_pieces(color, Piece::Rook)
+                    - board.colored_pieces(color, Piece::Queen);
+                let diag_blockers = board.occupied()
+                    - board.colored_pieces(color, Piece::Bishop)
+                    - board.colored_pieces(color, Piece::Queen);
                 let mob = match piece {
                     Piece::Pawn => {
                         get_pawn_quiets(unflipped_square, color, board.occupied())
                             | (get_pawn_attacks(unflipped_square, color) & board.colors(!color))
                     }
                     Piece::Knight => get_knight_moves(unflipped_square),
-                    Piece::Bishop => get_bishop_moves(unflipped_square, board.occupied()),
-                    Piece::Rook => get_rook_moves(unflipped_square, board.occupied()),
+                    Piece::Bishop => get_bishop_moves(unflipped_square, diag_blockers),
+                    Piece::Rook => get_rook_moves(unflipped_square, ortho_blockers),
                     Piece::Queen => {
-                        get_bishop_moves(unflipped_square, board.occupied())
-                            | get_rook_moves(unflipped_square, board.occupied())
+                        get_bishop_moves(unflipped_square, diag_blockers)
+                            | get_rook_moves(unflipped_square, ortho_blockers)
                     }
                     Piece::King => get_king_moves(unflipped_square),
                 };
