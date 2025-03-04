@@ -290,16 +290,22 @@ struct Searcher {
             return 0;
         }
 
-        if ((depth || best != eval) && best > LOST + ply) {
-            tt.key = upper_key;
-            tt.eval = best;
-            tt.depth = depth;
-            tt.bound =
-                best >= beta ? BOUND_LOWER :
-                raised_alpha ? BOUND_EXACT : BOUND_UPPER;
-            if (!tt_good || tt.bound != BOUND_UPPER) {
-                tt.mv = bestmv;
-            }
+        TtData prev_tt = slot.load({});
+        tt.key = upper_key;
+        tt.eval = best;
+        tt.depth = depth;
+        tt.bound =
+            best >= beta ? BOUND_LOWER :
+            raised_alpha ? BOUND_EXACT : BOUND_UPPER;
+        if (!tt_good || tt.bound != BOUND_UPPER) {
+            tt.mv = bestmv;
+        }
+
+        if (
+            (depth || best != eval)
+                && best > LOST + ply
+                && (upper_key == prev_tt.key || tt.bound == BOUND_EXACT || depth * 3 > prev_tt.depth)
+        ) { 
             slot.store(tt, {});
             if (!board.board[bestmv.to] && (
                 tt.bound == BOUND_UPPER && best < evals[ply] ||
