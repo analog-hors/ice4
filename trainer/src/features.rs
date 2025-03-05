@@ -26,6 +26,7 @@ pub struct Features {
     shield_pawns: [f32; 4],
     king_on_open_file: f32,
     king_on_semiopen_file: f32,
+    virtual_queen_mobility: f32,
     mobility: [f32; 6],
     passed_pawn_ranks: [f32; 6],
     passer_own_king_dist: [f32; 8],
@@ -119,6 +120,13 @@ impl Features {
                 let king_ring_attacks = (get_king_moves(board.king(!color)) & mob).len();
                 if piece != Piece::King {
                     self.king_attack_weight[color as usize][piece as usize] += king_ring_attacks as f32;
+                }
+
+                if piece == Piece::King {
+                    let vqm = get_bishop_moves(unflipped_square, board.occupied())
+                        | get_rook_moves(unflipped_square, board.occupied());
+                    let vqm = vqm - board.occupied();
+                    self.virtual_queen_mobility += inc * vqm.len() as f32;
                 }
             }
         }

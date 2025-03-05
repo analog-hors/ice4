@@ -49,6 +49,7 @@ struct Board {
     uint8_t check;
     int32_t inc_eval;
     int32_t pawn_eval;
+    int32_t vqm_eval;
     uint64_t zobrist;
     uint64_t pawn_hash;
     uint64_t material_hash;
@@ -104,26 +105,21 @@ struct Board {
         }
     }
 
-    int attacked(int ksq, int by) {
-        if (
-            board[ksq + (by & WHITE ? -10 : 10) + 1] == (PAWN | by) ||
-            board[ksq + (by & WHITE ? -10 : 10) - 1] == (PAWN | by)
-        ) {
-            return 1;
-        }
+    int attacked(int ksq, int by, int add_to_vqm = 0) {
+        int atk = board[ksq + (by & WHITE ? -10 : 10) + 1] == (PAWN | by)
+            || board[ksq + (by & WHITE ? -10 : 10) - 1] == (PAWN | by);
         for (int i = 0; i < 16; i++) {
             int sq = ksq + RAYS[i];
-            if (i < 8 && board[sq] == (KING | by)) {
-                return 1;
-            }
+            atk |= i < 8 && board[sq] == (KING | by);
             while (i < 8 && !board[sq]) {
+                if (add_to_vqm) {
+                    vqm_eval += VIRTUAL_QUEEN_MOBILITY;
+                }
                 sq += RAYS[i];
             }
-            if (i < 8 && board[sq] == (QUEEN | by) || board[sq] == (SLIDER[i] | by)) {
-                return 1;
-            }
+            atk |= i < 8 && board[sq] == (QUEEN | by) || board[sq] == (SLIDER[i] | by);
         }
-        return 0;
+        return atk;
     }
 
     int make_move(Move mv, int promo = QUEEN) {
@@ -187,12 +183,19 @@ struct Board {
 
         __builtin_prefetch(&TT[zobrist % TT_SIZE]);
 
-        if (attacked(king_sq[stm != WHITE], NSTM)) {
+        vqm_eval = 0;
+        if (attacked(king_sq[stm != WHITE], NSTM, 1)) {
             return 1;
         }
 
-        check = attacked(king_sq[stm == WHITE], stm);
+        vqm_eval = -vqm_eval;
+        check = attacked(king_sq[stm == WHITE], stm, 1);
         stm ^= INVALID;
+
+        if (stm == BLACK) {
+            vqm_eval = -vqm_eval;
+        }
+
         return 0;
 
         #undef NSTM
@@ -365,7 +368,7 @@ struct Board {
 
         // Bishop pair: 29 bytes (v5)
         // 8.0+0.08: 25.79 +- 4.96 [466, 1393, 1806, 1086, 249] 0.89 elo/byte
-        int e = inc_eval + pawn_eval + BISHOP_PAIR * ((piece_counts[WHITE_BISHOP] >= 2) - (piece_counts[BLACK_BISHOP] >= 2));
+        int e = inc_eval + pawn_eval + vqm_eval + BISHOP_PAIR * ((piece_counts[WHITE_BISHOP] >= 2) - (piece_counts[BLACK_BISHOP] >= 2));
         // Rook on (semi-)open file: 42 bytes (v5)
         // 8.0+0.08: 9.83 +- 4.84 [344, 1347, 1852, 1166, 293] 0.23 elo/byte
         for (int file = 1; file < 9; file++) {
