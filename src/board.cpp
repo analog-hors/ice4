@@ -23,7 +23,8 @@ struct TtData {
     int16_t eval;
     Move mv;
     uint8_t depth;
-    uint8_t bound;
+    uint8_t bound : 2;
+    uint8_t age : 6;
 };
 
 // 8MB. Replaced for TCEC builds by the minifier.
@@ -35,6 +36,7 @@ int TT_SIZE = HASH_SIZE;
 #else
 #define TT_SIZE HASH_SIZE
 #endif
+int TT_AGE = 0;
 
 struct Board {
     uint8_t board[120];

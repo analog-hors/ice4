@@ -51,6 +51,8 @@ void uci() {
 #endif
             case 'p': // position
                 ROOT = Board();
+                TT_AGE++;
+                TT_AGE &= 63;
 #ifdef OPENBENCH
                 tokens >> token; // startpos | fen
                 if (token == "fen") {

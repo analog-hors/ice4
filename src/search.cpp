@@ -297,10 +297,16 @@ struct Searcher {
             tt.bound =
                 best >= beta ? BOUND_LOWER :
                 raised_alpha ? BOUND_EXACT : BOUND_UPPER;
+            tt.age = TT_AGE;
             if (!tt_good || tt.bound != BOUND_UPPER) {
                 tt.mv = bestmv;
             }
-            slot.store(tt, {});
+            
+            TtData prev = slot.load({});
+            if (ply == 0 || upper_key != prev.key || depth + 2 * uint8_t(TT_AGE - prev.age) >= prev.depth) {
+                slot.store(tt, {});
+            }
+            
             if (!board.board[bestmv.to] && (
                 tt.bound == BOUND_UPPER && best < evals[ply] ||
                 tt.bound == BOUND_LOWER && best > evals[ply]

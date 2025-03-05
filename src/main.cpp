@@ -113,6 +113,8 @@ int main(int argc, char *argv[]) {
             Searcher s{};
             s.iterative_deepening(INT_MAX, 15);
             nodes += s.nodes;
+            TT_AGE++;
+            TT_AGE &= 63;
         }
         clock_gettime(CLOCK_MONOTONIC, &end);
         double start_s = start.tv_sec + start.tv_nsec / 1000000000.0;
