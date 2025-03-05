@@ -116,7 +116,16 @@ impl Features {
                 let mob = mob - board.colors(color);
                 self.mobility[piece as usize] += inc * mob.len() as f32;
 
-                let king_ring_attacks = (get_king_moves(board.king(!color)) & mob).len();
+                let mut king_ring_center = board.king(!color);
+                if king_ring_center.file() == File::A {
+                    king_ring_center = king_ring_center.offset(1, 0);
+                }
+                if king_ring_center.file() == File::H {
+                    king_ring_center = king_ring_center.offset(-1, 0);
+                }
+    
+                let king_ring = get_king_moves(king_ring_center) | king_ring_center.bitboard();
+                let king_ring_attacks = (king_ring & mob).len();
                 if piece != Piece::King {
                     self.king_attack_weight[color as usize][piece as usize] += king_ring_attacks as f32;
                 }

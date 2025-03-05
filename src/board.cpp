@@ -208,8 +208,12 @@ struct Board {
         #define OTHER (stm ^ INVALID)
         count = 0;
         mobility = 0;
+        int king_ring_center = king_sq[stm == WHITE]
+            + (king_sq[stm == WHITE] % 10 == 1)
+            - (king_sq[stm == WHITE] % 10 == 8);
+        king_ring[king_ring_center] = 1;
         for (int i = 0; i < 8; i++) {
-            king_ring[king_sq[stm == WHITE] + RAYS[i]] = 1;
+            king_ring[king_ring_center + RAYS[i]] = 1;
         }
         for (int sq = A1; sq <= H8; sq++) {
             // skip empty squares & opponent squares (& border squares)
